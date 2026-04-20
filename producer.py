@@ -14,7 +14,7 @@ def get_csv_message():
     # 날짜를 시간순 오름차순 처리하기
     # 날짜 시간 변환 실패 시 제외
     df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
-    df = df.dropna(subset=["InvoiceDate"]).sort_values("InvoiceDate").reset_index(drop=True)
+    df = df.dropna(subset=["InvoiceDate"]).sort_values(by=["InvoiceDate", "InvoiceNo"], ascending=[True, True], kind="mergesort").reset_index(drop=True)
 
     message = []
 
@@ -22,7 +22,7 @@ def get_csv_message():
         map = {}
 
         map['invoice_no'] = str(row["InvoiceNo"])
-        map['event_type'] = 'cancle' if map['invoice_no'].startswith('C') else "order"
+        map['event_type'] = 'cancel' if map['invoice_no'].startswith('C') else "order"
 
         map['message'] = {
             "event_id": f"{row['InvoiceNo']}-{row['StockCode']}",
