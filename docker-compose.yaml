@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - kafka-network
 
   kafka:
     image: confluentinc/cp-kafka:7.3.2
@@ -38,6 +40,8 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" 
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - kafka-network
     
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -50,6 +54,37 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - kafka-network
+
+    # Spark 환경 
+  spark-master:
+    image: bitnamilegacy/spark:3.4.1
+    container_name: spark-master
+    ports:
+      - "8181:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+    volumes:
+      - ./jobs:/opt/spark-apps
+    networks:
+      - kafka-network
+
+  spark-worker:
+    image: bitnamilegacy/spark:3.4.1
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    volumes:
+      - ./jobs:/opt/spark-apps
+    networks:
+      - kafka-network
 
   postgres:
     image: postgres:16
@@ -62,6 +97,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
+networks:
+  kafka-network:
+    driver: bridge
 
 volumes:
   zookeeper-data:

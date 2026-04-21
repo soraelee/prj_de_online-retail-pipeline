@@ -24,15 +24,18 @@ def get_csv_message():
         map['invoice_no'] = str(row["InvoiceNo"])
         map['event_type'] = 'cancel' if map['invoice_no'].startswith('C') else "order"
 
+        category = 'ETC' if row["StockCode"].isdigit() else str(row["StockCode"])[-1];
+        
         map['message'] = {
             "event_id": f"{row['InvoiceNo']}-{row['StockCode']}",
             "event_type": "cancel" if str(row["InvoiceNo"]).startswith("C") else "order",
             "invoice_no": str(row["InvoiceNo"]),
-            "stock_code": str(row["StockCode"]),
+            "stock_code": str(row["StockCode"]) if category == 'ETC' else str(row["StockCode"])[:-1],
+            "category": category,
             "description": None if pd.isna(row["Description"]) else str(row["Description"]),
             "quantity": int(row["Quantity"]),
             "unit_price": float(row["UnitPrice"]),
-            "customer_id": None if pd.isna(row["CustomerID"]) else str(row["CustomerID"]),
+            "customer_id": None if pd.isna(row["CustomerID"]) else str(int(row["CustomerID"])),
             "country": str(row["Country"]),
             "invoice_timestamp": str(row["InvoiceDate"]),
             "metadata": {
