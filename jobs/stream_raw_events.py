@@ -1,6 +1,6 @@
 '''
 * raw 데이터를 DB에 적재
-    - 적재 Table명 : retail_events_raw
+    - 적재 Table명 : raw_retail_events
 * customer/product 데이터 추출
     - customer : dim_customer
     - product : dim_product
@@ -24,20 +24,21 @@ JDBC_PROPERTIES = {
     "driver": "org.postgresql.Driver"
 }
 
-CHECKPOINT_PATH = "/tmp/checkpoints/retail_events_raw"
+CHECKPOINT_PATH = "/tmp/checkpoints/raw_retail_events"
 
 
 def create_spark_session():
     return (
         SparkSession.builder
         .appName("retail-events-raw")
-        .config(
-            "spark.jars.packages",
-            ",".join([
-                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1",
-                "org.postgresql:postgresql:42.7.3"
-            ])
-        )
+        # .config(
+        #     "spark.jars",
+        #     "/opt/bitnami/spark/jars/postgresql-42.7.3.jar"
+        # )
+        # .config(
+        #     "spark.jars.packages",
+        #     "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1"
+        # )
         .getOrCreate()
     )
 
@@ -59,6 +60,7 @@ def parse_data(kafka_df):
         StructField("event_type", StringType(), True),
         StructField("invoice_no", StringType(), True),
         StructField("stock_code", StringType(), True),
+        StructField("category", StringType(), True),
         StructField("description", StringType(), True),
         StructField("quantity", IntegerType(), True),
         StructField("unit_price", DecimalType(10, 2), True),
@@ -78,7 +80,7 @@ def parse_data(kafka_df):
         .select("message_key", "data.*")
         .withColumn("invoice_timestamp", to_timestamp(col("invoice_timestamp")))
         .withColumn("invoice_date", to_date(col("invoice_timestamp")))
-        .withColumn("invoice_time_str", date_format(col("invoice_timestamp"), "HH:mm:ss"))
+        .withColumn("invoice_time", date_format(col("invoice_timestamp"), "HH:mm:ss"))
         .withColumn("description", trim(col("description")))
         .withColumn("ingested_at", current_timestamp())
         .withColumn("load_run_id", lit("sorae"))
@@ -91,6 +93,7 @@ def parse_data(kafka_df):
                         "||",
                         coalesce(col("invoice_no"), lit("")),
                         coalesce(col("stock_code"), lit("")),
+                        coalesce(col("category"), lit("")),
                         coalesce(col("customer_id"), lit("")),
                         coalesce(col("invoice_timestamp").cast("string"), lit("")),
                         coalesce(col("event_type"), lit(""))
@@ -104,6 +107,7 @@ def parse_data(kafka_df):
             "event_type",
             "invoice_no",
             "stock_code",
+            "category",
             "description",
             "quantity",
             "unit_price",
@@ -111,7 +115,7 @@ def parse_data(kafka_df):
             "country",
             "invoice_timestamp",
             "invoice_date",
-            "invoice_time_str",
+            "invoice_time",
             "ingested_at",
             "load_run_id"
         )
@@ -132,7 +136,7 @@ def write_raw_batch(batch_df, batch_id):
         .option("batchsize", "1000")
         .jdbc(
             url=JDBC_URL,
-            table="retail_events_raw",
+            table="raw_retail_events",
             properties=JDBC_PROPERTIES
         )
     )

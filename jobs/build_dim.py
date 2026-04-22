@@ -15,11 +15,11 @@ JDBC_PROPERTIES = {
 def create_spark_session():
     return (
         SparkSession.builder
-        .appName("batch_dim")
-        .config(
-            "spark.jars.packages",
-            "org.postgresql:postgresql:42.7.3"
-        )
+        .appName("build_dim")
+        # .config(
+        #     "spark.jars.packages",
+        #     "org.postgresql:postgresql:42.7.3"
+        # )
         .getOrCreate()
     )
 
@@ -27,11 +27,11 @@ def create_spark_session():
 def read_raw(spark):
     return spark.read.jdbc(
         url=JDBC_URL,
-        table="retail_events_raw",
+        table="raw_retail_events",
         properties=JDBC_PROPERTIES
     )
 
-
+# 고객 데이터 생성
 def build_dim_customer(raw_df):
     order_df = raw_df.filter(
         (col("event_type") == "order") &
@@ -43,11 +43,12 @@ def build_dim_customer(raw_df):
         .agg(
             min_("invoice_timestamp").alias("first_purchase_at"),
             max_("invoice_timestamp").alias("last_purchase_at"),
-            countDistinct("invoice_no").alias("total_order_count")
+            countDistinct("invoice_no").alias("total_order_count"),
+            first("country", ignorenulls=True).alias("country"),
         )
     )
 
-
+#상품 데이터 생성
 def build_dim_product(raw_df):
     order_df = raw_df.filter(
         (col("event_type") == "order") &
@@ -58,20 +59,18 @@ def build_dim_product(raw_df):
         order_df.groupBy("stock_code")
         .agg(
             first("description", ignorenulls=True).alias("description"),
+            first("category", ignorenulls=True).alias("category"),
             max_("unit_price").alias("latest_unit_price")
         )
     )
 
     return (
         base_df
-        .withColumn("proc_type", split(coalesce(col("description"), lit("")), r"\s+").getItem(0))
         .withColumn("product_name", col("description"))
-        .withColumn("category", lit(None).cast("string"))
         .select(
             "stock_code",
             "category",
             "description",
-            "proc_type",
             "product_name",
             "latest_unit_price"
         )
