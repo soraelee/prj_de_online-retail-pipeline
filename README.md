@@ -502,8 +502,8 @@ docker exec -it spark-master spark-submit \
 
 ## Airflow 파이프라인
 https://excalidraw.com/#json=6pF8jJXIVrFyy7EBjCejX,bL7SalQKRf9rlC_6r-5N0Q
-![[Pasted image 20260427013951.png]]
 
+![Airflow 포함 파이프라인 구성도](docs/airflow_pipeline.png)
 
 ## airflow 아이디 비밀번호 생성
 ```bash
