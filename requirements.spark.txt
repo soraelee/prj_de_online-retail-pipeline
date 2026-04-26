@@ -1,0 +1,7 @@
+pyspark==3.4.1
+pandas==1.5.3
+numpy==1.24.3
+python-dotenv==1.0.0
+psycopg2-binary==2.9.9
+requests==2.31.0
+slack_sdk>=3.0

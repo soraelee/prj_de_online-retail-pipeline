@@ -8,7 +8,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, from_json, to_timestamp, to_date, date_format,
-    current_timestamp, lit, coalesce, sha2, concat_ws, trim
+    current_timestamp, lit, coalesce, sha2, concat_ws, trim,
+    first
 )
 from pyspark.sql.types import (
     StructType, StructField, StringType, IntegerType, DecimalType
@@ -31,14 +32,13 @@ def create_spark_session():
     return (
         SparkSession.builder
         .appName("retail-events-raw")
-        # .config(
-        #     "spark.jars",
-        #     "/opt/bitnami/spark/jars/postgresql-42.7.3.jar"
-        # )
-        # .config(
-        #     "spark.jars.packages",
-        #     "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1"
-        # )
+        .config(
+            "spark.jars.packages",
+            ",".join([
+                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1",
+                "org.postgresql:postgresql:42.7.3"
+            ])
+        )
         .getOrCreate()
     )
 
@@ -53,7 +53,18 @@ def read_from_kafka(spark, topic):
         .load()
     )
 
+# tag를 기준으로 Streaming 배치 내에서 데이터를 분리하여 처리 주문 완료/미완료 분기 처리
+def branch_by_tag(batch_df):
+    raw_df = batch_df.filter(col('tag') != 'complete')
+    complete_invoice_df = (
+        batch_df
+        .filter(col('tag') == 'complete')
+        .select('invoice_no')
+        .distinct()
+    )
+    return raw_df, complete_invoice_df
 
+# raw 데이터 적재
 def parse_data(kafka_df):
     schema = StructType([
         StructField("event_id", StringType(), True),
@@ -66,7 +77,8 @@ def parse_data(kafka_df):
         StructField("unit_price", DecimalType(10, 2), True),
         StructField("customer_id", StringType(), True),
         StructField("country", StringType(), True),
-        StructField("invoice_timestamp", StringType(), True)
+        StructField("invoice_timestamp", StringType(), True),
+        StructField("tag", StringType(), True)
     ])
 
     parsed_df = (
@@ -117,29 +129,142 @@ def parse_data(kafka_df):
             "invoice_date",
             "invoice_time",
             "ingested_at",
-            "load_run_id"
+            "load_run_id",
+            "tag"
         )
     )
 
     return parsed_df
 
+# raw_retail_events를 invoice_no 기준으로 추출
+def read_orders(spark, invoice_no):
+    return (
+        spark.read.format("jdbc")
+        .option("url", JDBC_URL)
+        .option(
+            "query",
+            f"SELECT * FROM raw_retail_events WHERE invoice_no = '{invoice_no}'"
+        )
+        .option("user", JDBC_PROPERTIES["user"])
+        .option("password", JDBC_PROPERTIES["password"])
+        .option("driver", JDBC_PROPERTIES["driver"])
+        .load()
+    )
 
+# invoice_no 기준으로 주문 정보 추출하여 order_info 테이블에 적재
+def make_order_info(batch_df):
+    """
+        master 데이터 merge/update하여 order_info 테이블에 적재
+        - invoice_no : group by 기준
+        - event_type : order/cancel
+        - invoice_timestamp
+        - invoice_date
+        - invoice_time
+        - customer_id
+        - country
+    """
+
+    order_info_df = (
+        batch_df.groupby('invoice_no')
+            .agg(
+                first('event_type', ignorenulls=True).alias('event_type'),
+                first('invoice_timestamp').alias('invoice_timestamp'),
+                first('invoice_date').alias('invoice_date'),
+                first('invoice_time').alias('invoice_time'),
+                first('customer_id').alias('customer_id'),
+                first('country').alias('country')
+            )
+    )
+    return order_info_df, 'order_info'
+
+# raw_retail_events에서 상품 정보 추출하여 order_detail 테이블에 적재
+def make_order_detail(batch_df):
+    """
+        master 데이터 merge/update하여 order_detail 테이블에 적재
+        - event_id : unique key
+        - event_type : order/cancel
+        - invoice_no
+        - stock_code
+        - category
+        - description
+        - quantity
+        - unit_price
+    """
+
+    order_detail_df = (
+        batch_df.select(
+            "event_id",
+            "event_type",
+            "invoice_no",
+            "stock_code",
+            "category",
+            "description",
+            "quantity",
+            "unit_price"
+        )
+    )
+    return order_detail_df, 'order_detail'
+
+# raw_retail_events 테이블에 적재된 데이터를 invoice_no 기준으로 
+# 주문 완료/미완료 분기 처리하여 order_info, order_detail 테이블에 적재
 def write_raw_batch(batch_df, batch_id):
+    print(f"\n=== batch_id: {batch_id} ===")
+    batch_df.groupBy("tag").count().show(truncate=False)
+
     if batch_df.rdd.isEmpty():
         return
 
-    out_df = batch_df.dropDuplicates(["event_id"])
+    raw_df, complete_invoice_df = branch_by_tag(batch_df)
 
-    (
-        out_df.write
-        .mode("append")
-        .option("batchsize", "1000")
-        .jdbc(
-            url=JDBC_URL,
-            table="raw_retail_events",
-            properties=JDBC_PROPERTIES
+    print("raw empty:", raw_df.rdd.isEmpty())
+    print("complete empty:", complete_invoice_df.rdd.isEmpty())
+
+    if not raw_df.rdd.isEmpty():
+        out_df = raw_df.dropDuplicates(["event_id"])
+        (
+            out_df.write
+            .mode("append")
+            .option("batchsize", "1000")
+            .jdbc(
+                url=JDBC_URL,
+                table="raw_retail_events",
+                properties=JDBC_PROPERTIES
+            )
         )
-    )
+
+    if not complete_invoice_df.rdd.isEmpty():
+        spark = batch_df.sparkSession
+        invoice_nos = [row.invoice_no for row in complete_invoice_df.collect()]
+        print("complete invoice_nos:", invoice_nos)
+        for invoice_no in invoice_nos:
+            order_batch_df = read_orders(spark, invoice_no)
+            order_info_df, _ = make_order_info(order_batch_df)
+            order_detail_df, _ = make_order_detail(order_batch_df)
+            print("order_info count:", order_info_df.count())
+            print("order_detail count:", order_detail_df.count())
+
+
+            (
+                order_info_df.write
+                .mode("append")
+                .option("batchsize", "1000")
+                .jdbc(
+                    url=JDBC_URL,
+                    table="order_info",
+                    properties=JDBC_PROPERTIES
+                )
+            )
+
+            (
+                order_detail_df.write
+                .mode("append")
+                .option("batchsize", "1000")
+                .jdbc(
+                    url=JDBC_URL,
+                    table="order_detail",
+                    properties=JDBC_PROPERTIES
+                )
+            )
 
 
 def start_raw_stream(parsed_df):

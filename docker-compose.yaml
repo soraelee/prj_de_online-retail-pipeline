@@ -4,17 +4,17 @@ services:
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-log:/var/lib/zookeeper/log
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    #   ZOOKEEPER_TICK_TIME: 2000
+    # ports:
+    #   - "2181:2181"
+    # volumes:
+    #   - zookeeper-data:/var/lib/zookeeper/data
+    #   - zookeeper-log:/var/lib/zookeeper/log
+    # healthcheck:
+    #   test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
     networks:
       - kafka-network
 
@@ -28,6 +28,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -36,28 +37,30 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" 
-    volumes:
-      - kafka-data:/var/lib/kafka/data
+    # volumes:
+    #   - kafka-data:/var/lib/kafka/data
     networks:
       - kafka-network
     
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    depends_on:
-      - kafka
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-    networks:
-      - kafka-network
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:latest
+  #   container_name: kafka-ui
+  #   depends_on:
+  #     - kafka
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: local
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+  #     KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+  #   networks:
+  #     - kafka-network
 
     # Spark 환경 
   spark-master:
-    image: bitnamilegacy/spark:3.4.1
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
     container_name: spark-master
     ports:
       - "8181:8080"
@@ -71,7 +74,10 @@ services:
       - kafka-network
 
   spark-worker:
-    image: bitnamilegacy/spark:3.4.1
+    # image: bitnamilegacy/spark:3.4.1
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
     container_name: spark-worker
     depends_on:
       - spark-master
@@ -83,6 +89,20 @@ services:
     volumes:
       - ./jobs:/opt/spark-apps
       - ./jars:/opt/spark-jars
+    networks:
+      - kafka-network
+    
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    container_name: collector
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    volumes:
+      - ./:/app
     networks:
       - kafka-network
 
@@ -99,13 +119,70 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - kafka-network
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow
+    depends_on:
+      - postgres
+      - spark-master
+      - kafka
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./app/airflow/dags:/opt/airflow/dags
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app/airflow/dags:/opt/airflow/dags
+    command: webserver
+    networks:
+      - kafka-network
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
+    command: db init
+    networks:
+      - kafka-network
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow-scheduler
+    depends_on:
+      - postgres
+      - airflow-init
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
+    volumes:
+      - ./app/airflow/dags:/opt/airflow/dags
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app/airflow/dags:/opt/airflow/dags
+    command: scheduler
+    networks:
+      - kafka-network
+
+volumes:
+  postgres-data:
 
 networks:
   kafka-network:
     driver: bridge
-
-volumes:
-  zookeeper-data:
-  zookeeper-log:
-  kafka-data: 
-  postgres-data:

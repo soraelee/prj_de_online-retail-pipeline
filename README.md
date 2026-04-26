@@ -498,11 +498,75 @@ docker exec -it spark-master spark-submit \
   /opt/spark-apps/build_dim.py
 ```
 
+# Airflow 설계 및 구현
+
+## Airflow 파이프라인
+https://excalidraw.com/#json=6pF8jJXIVrFyy7EBjCejX,bL7SalQKRf9rlC_6r-5N0Q
+![[Pasted image 20260427013951.png]]
+
+
+## airflow 아이디 비밀번호 생성
+```bash
+docker compose exec airflow airflow users create \
+  --username admin \
+  --firstname admin \
+  --lastname user \
+  --role Admin \
+  --email admin@example.com \
+  --password admin
+```
+
+## docker 실행 및 DB 초기화 자동화 세팅
+### sh 스크립트로 collector를 제외한 모든 작업이 실행되도록 구성
+[run_pipeline.sh]
+```bash
+#!/bin/bash
+
+set -e
+
+  
+
+echo "1. Start containers"
+
+docker compose up -d zookeeper kafka postgres spark-master spark-worker airflow airflow-scheduler
+
+echo "2. Wait for Airflow to load DAGs"
+sleep 10
+
+echo "3. Show DAG list"
+docker compose exec airflow airflow dags list
+
+echo "4. Unpause DAG"
+docker compose exec airflow airflow dags unpause retail_pipeline_dag
+
+echo "5. Trigger DAG"
+docker compose exec airflow airflow dags trigger retail_pipeline_dag
+
+echo "6. Airflow UI: http://localhost:8081"
+```
+
+## airflow dag 종류
+| dag_id                | filepath               | 
+| --------------------- | ---------------------- | 
+| retail_pipeline       | retail_pipeline_dag.py | 
+| setup_retail_pipeline | retail_ingestion.py    | 
+
+### airflow retail_ingestion 구현
+dag에서 DB 초기화 및 stream 실행 구성
+[순서]
+1. 테이블 리셋 (Truncate 사용)
+2. stream_raw_events 실행 
+3. collector 실행 = producer 실행
+
+### retail_pipeline_dag 구현
+`retail_pipeline_dag`에서 dimension과 mart를 배치를 통해 실행할 수 있도록 구현
+
+
+
 ## 향후 계획
 
 - `batch_mart` 구현 완료
 - 상품 description parsing 고도화
 - customer/product insert-merge 저장 (현재는 overwrite)
-- 
 - Airflow DAG 연결
 - Dashboard 구현

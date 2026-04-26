@@ -1,3 +1,5 @@
+import argparse
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, min as min_, max as max_, countDistinct,
@@ -16,20 +18,29 @@ def create_spark_session():
     return (
         SparkSession.builder
         .appName("build_dim")
-        # .config(
-        #     "spark.jars.packages",
-        #     "org.postgresql:postgresql:42.7.3"
-        # )
+        .config(
+            "spark.jars.packages",
+            ",".join([
+                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1",
+                "org.postgresql:postgresql:42.7.3"
+            ])
+        )
         .getOrCreate()
     )
 
 
-def read_raw(spark):
-    return spark.read.jdbc(
+def read_raw(spark, start_ts=None, end_ts=None):
+    df = spark.read.jdbc(
         url=JDBC_URL,
         table="raw_retail_events",
         properties=JDBC_PROPERTIES
     )
+    if start_ts and end_ts:
+        df = df.filter(
+            (col("invoice_timestamp") >= lit(start_ts)) &
+            (col("invoice_timestamp") < lit(end_ts))
+        )
+    return df
 
 # 고객 데이터 생성
 def build_dim_customer(raw_df):
@@ -80,8 +91,7 @@ def build_dim_product(raw_df):
 def write_dim(df, table_name):
     (
         df.write
-        .mode("overwrite")
-        .option("truncate", "true")
+        .mode("append")
         .jdbc(
             url=JDBC_URL,
             table=table_name,
@@ -90,17 +100,28 @@ def write_dim(df, table_name):
     )
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start", required=True)
+    parser.add_argument("--end", required=True)
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     spark = create_spark_session()
     spark.sparkContext.setLogLevel("WARN")
 
-    raw_df = read_raw(spark)
+    raw_df = read_raw(spark, start_ts=args.start, end_ts=args.end)
 
     dim_customer_df = build_dim_customer(raw_df)
     dim_product_df = build_dim_product(raw_df)
 
     write_dim(dim_customer_df, "dim_customer")
     write_dim(dim_product_df, "dim_product")
+    
+    print("dim_customer, dim_product 생성 완료")
 
 
 if __name__ == "__main__":

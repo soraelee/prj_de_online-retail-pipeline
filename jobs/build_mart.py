@@ -1,3 +1,5 @@
+import argparse
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, when, lit, count, countDistinct, sum as sum_, round as round_,
@@ -20,17 +22,26 @@ def create_spark_session():
         .appName("build_mart")
         .config(
             "spark.jars.packages",
-            "org.postgresql:postgresql:42.7.3"
+            ",".join([
+                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1",
+                "org.postgresql:postgresql:42.7.3"
+            ])
         )
         .getOrCreate()
     )
 
-def read_raw(spark):
-    return spark.read.jdbc(
+def read_raw(spark, start_ts=None, end_ts=None):
+    df = spark.read.jdbc(
         url=JDBC_URL,
-        table="retail_events_raw",
+        table="raw_retail_events",
         properties=JDBC_PROPERTIES
     )
+    if start_ts and end_ts:
+        df = df.filter(
+            (col("invoice_timestamp") >= lit(start_ts)) &
+            (col("invoice_timestamp") < lit(end_ts))
+        )
+    return df
 
 def read_customer(spark):
     return spark.read.jdbc(
@@ -122,21 +133,23 @@ def build_mart_daily_orders(raw_df):
 
     return daily_df
 
-# 상품별 구매율
-def build_mart_product_sales(raw_df) :
+# 상품별 판매량/매출 (TODO: 추후 구현)
+def build_mart_product_sales(raw_df):
     """
     일별 상품별 주문/취소 요약
     """
     return raw_df
 
-# 고객 재구매율
-def build_mart_customer_repeat(raw_df) :
+# 고객 재구매율 (TODO: 추후 구현)
+def build_mart_customer_repeat(raw_df):
     """
     고객 재구매율
     정의:
     - 특정 날짜(order_date)에 구매한 고객 중
     - 그 날짜까지 누적 주문 건수(distinct invoice_no)가 2건 이상인 고객 비율
     """
+    # 현재는 빈 스킬레톤 (과제 scope에서 미완성)
+
     return raw_df
 
 
@@ -153,12 +166,21 @@ def write_table(df, table_name):
     )
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start", required=True)
+    parser.add_argument("--end", required=True)
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     spark = create_spark_session()
     spark.sparkContext.setLogLevel("WARN")
 
-    raw_df = read_table(spark, "retail_events_raw")
-    dim_product_df = read_table(spark, "dim_product")
+    raw_df = read_raw(spark, start_ts=args.start, end_ts=args.end)
+    dim_product_df = read_product(spark)
 
     base_df = prepare_base_df(raw_df)
 
