@@ -504,62 +504,180 @@ docker exec -it spark-master spark-submit \
 https://excalidraw.com/#json=6pF8jJXIVrFyy7EBjCejX,bL7SalQKRf9rlC_6r-5N0Q
 
 ![Airflow 포함 파이프라인 구성도](docs/airflow_pipeline.png)
+## Airflow DAG 설계
 
-## airflow 아이디 비밀번호 생성
-```bash
-docker compose exec airflow airflow users create \
-  --username admin \
-  --firstname admin \
-  --lastname user \
-  --role Admin \
-  --email admin@example.com \
-  --password admin
+본 프로젝트에서는 Kafka Producer, Spark Structured Streaming, PostgreSQL 적재, Dimension/Mart 테이블 생성을 Airflow DAG로 관리한다.
+
+Airflow는 직접 데이터를 처리하기보다는, 각 처리 단계의 실행 순서와 의존성을 관리하는 역할을 담당한다.
+
+---
+
+### 1. DAG 목적 및 실행 단위
+
+본 프로젝트의 DAG는 수집 단계와 가공 단계를 분리하여 구성했다.
+
+| DAG ID | 실행 단위 | 목적 |
+|---|---|---|
+| `setup_retail_pipeline` | 수동 실행 / 초기 적재 단위 | Kafka Topic 생성, Raw 테이블 초기화, Spark Streaming 실행, Producer 실행 |
+| `retail_pipeline` | 배치 실행 단위 | Raw 데이터를 기반으로 Dimension / Mart 테이블 생성 |
+
+#### 입력 / 출력
+
+| DAG ID | 입력 | 출력 |
+|---|---|---|
+| `setup_retail_pipeline` | Online Retail CSV, Kafka Topic `retail-events` | PostgreSQL `raw_retail_events` |
+| `retail_pipeline` | PostgreSQL `raw_retail_events` | `dim_customer`, `dim_product`, `mart_daily_orders`, `mart_product_sales` |
+
+---
+
+### 2. DAG 구조 및 Task 의존성
+
+#### `setup_retail_pipeline`
+
+```text
+create_kafka_topic
+    ↓
+reset_raw_table
+    ↓
+start_stream_raw_events
+    ↓
+check_stream_alive
+    ↓
+run_collector
+    ↓
+check_raw_count
 ```
 
-## docker 실행 및 DB 초기화 자동화 세팅
-### sh 스크립트로 collector를 제외한 모든 작업이 실행되도록 구성
-[run_pipeline.sh]
+각 Task의 역할은 다음과 같다.
+
+| Task                      | 역할                                  |
+| ------------------------- | ----------------------------------- |
+| `create_kafka_topic`      | Spark Streaming 실행 전 Kafka Topic 생성 |
+| `reset_raw_table`         | Raw 테이블 초기화 및 Spark checkpoint 삭제   |
+| `start_stream_raw_events` | Spark Structured Streaming Job 실행   |
+| `check_stream_alive`      | Spark Streaming 프로세스 실행 여부 확인       |
+| `run_collector`           | Kafka Producer 실행                   |
+| `check_raw_count`         | PostgreSQL Raw 테이블 적재 건수 확인         |
+
+`retail_pipeline`
+```text
+build_dim_customer
+    ↓
+build_dim_product
+    ↓
+build_mart_daily_orders
+    ↓
+build_mart_product_sales
+```
+
+retail_pipeline DAG는 Raw 테이블에 적재된 데이터를 기준으로 분석용 Dimension / Mart 테이블을 생성한다.
+
+### 3. Task 간 데이터 전달 방식
+
+Task 간 데이터는 XCom으로 직접 전달하지 않고, Kafka와 PostgreSQL을 통해 전달한다.
+
+Producer
+→ Kafka Topic
+→ Spark Streaming
+→ PostgreSQL Raw Table
+→ Dimension / Mart Batch Table
+
+이 방식은 각 처리 단계를 느슨하게 분리할 수 있고, 중간 저장소를 기준으로 재처리 및 검증이 가능하다는 장점이 있다.
+
+### 4. 스케줄
+
+현재 프로젝트는 로컬 개발 및 과제 검증 목적이므로 DAG는 수동 실행 방식으로 구성했다.
+```
+schedule=None
+catchup=False
+```
+수동 실행으로 구성한 이유는 다음과 같다.
+
+Kafka Producer가 샘플 데이터를 직접 발행하는 구조이다.
+Spark Streaming 실행 여부를 먼저 확인한 뒤 Producer를 실행해야 한다.
+테스트 과정에서 Raw 테이블과 checkpoint를 반복 초기화해야 한다.
+
+운영 환경으로 확장할 경우, retail_pipeline DAG는 일 단위 배치로 실행할 수 있다.
+
+```text
+예시: 매일 00:10 실행
+cron: 10 0 * * *
+timezone: Asia/Seoul
+```
+### 5. Retry / Backoff / Failure Handling
+
+Airflow Task는 네트워크, DB 연결, Kafka/Spark 실행 지연과 같은 일시적 실패에 대비하여 retry를 적용할 수 있도록 설계했다.
+
+재시도가 의미 있는 실패와 의미 없는 실패는 다음과 같이 구분했다.
+
+| 실패 유형                       | Retry 여부       | 처리 방식                          |
+| --------------------------- | -------------- | ------------------------------ |
+| Kafka / PostgreSQL 일시 연결 실패 | Retry 대상       | 일정 시간 후 재시도                    |
+| Spark Worker 등록 지연          | Retry 대상       | 대기 후 재시도                       |
+| Kafka Topic 미생성             | Retry보다는 사전 생성 | `create_kafka_topic` Task에서 처리 |
+| 스키마 파싱 실패                   | Retry 대상 아님    | 로그 확인 후 코드 또는 데이터 수정           |
+| 데이터 품질 오류                   | Retry 대상 아님    | 별도 검증 및 격리 필요                  |
+
+### 6. Idempotency 재실행 안전성
+
+같은 DAG를 다시 실행해도 데이터가 중복 적재되거나 이전 실행 상태와 충돌하지 않도록 다음 처리를 추가했다.
+
+- Raw 테이블 초기화
+```sql
+TRUNCATE TABLE raw_retail_events RESTART IDENTITY CASCADE;
+```
+
+- Spark Structured Streaming checkpoint 삭제
 ```bash
-#!/bin/bash
+rm -rf /tmp/checkpoints/retail_events_raw
+```
+- Kafka Topic은 Spark Streaming 실행 전에 미리 생성
+```bash
+kafka-topics --create --if-not-exists --topic retail-events
+```
 
-set -e
+이를 통해 DAG 재실행 시 이전 Spark offset 상태나 기존 Raw 데이터로 인한 충돌을 줄였다.
 
-  
+### 7. 실행 자동화
 
-echo "1. Start containers"
+Airflow 실행과 DAG 트리거는 `run_pipeline.sh`로 자동화했다.
 
+```bash
 docker compose up -d zookeeper kafka postgres spark-master spark-worker airflow airflow-scheduler
+docker compose up --no-start collector
 
-echo "2. Wait for Airflow to load DAGs"
-sleep 10
-
-echo "3. Show DAG list"
-docker compose exec airflow airflow dags list
-
-echo "4. Unpause DAG"
-docker compose exec airflow airflow dags unpause retail_pipeline_dag
-
-echo "5. Trigger DAG"
-docker compose exec airflow airflow dags trigger retail_pipeline_dag
-
-echo "6. Airflow UI: http://localhost:8081"
+docker compose exec airflow airflow dags unpause setup_retail_pipeline
+docker compose exec airflow airflow dags trigger setup_retail_pipeline
 ```
+collector는 Producer 역할을 하므로 Docker Compose 실행 시 바로 실행하지 않고, DAG 내부에서 Spark Streaming이 실행된 이후 시작되도록 구성했다.
 
-## airflow dag 종류
-| dag_id                | filepath               | 
-| --------------------- | ---------------------- | 
-| retail_pipeline       | retail_pipeline_dag.py | 
-| setup_retail_pipeline | retail_ingestion.py    | 
+### 8. Repo 구성
 
-### airflow retail_ingestion 구현
-dag에서 DB 초기화 및 stream 실행 구성
-[순서]
-1. 테이블 리셋 (Truncate 사용)
-2. stream_raw_events 실행 
-3. collector 실행 = producer 실행
+Airflow 실행을 위해 다음 파일을 구성했다.
+```text
+.
+├── docker-compose.yml
+├── Dockerfile.airflow
+├── Dockerfile.spark
+├── Dockerfile.collector
+├── requirements.airflow.txt
+├── requirements.spark.txt
+├── requirements.collector.txt
+├── run_pipeline.sh
+├── app/
+│   └── airflow/
+│       └── dags/
+│           ├── setup_retail_pipeline.py
+│           └── retail_pipeline_dag.py
+├── jobs/
+│   └── stream_raw_events.py
+└── producer.py
+```
+### 9. 정리
 
-### retail_pipeline_dag 구현
-`retail_pipeline_dag`에서 dimension과 mart를 배치를 통해 실행할 수 있도록 구현
+Airflow를 통해 단순히 스크립트를 순서대로 실행하는 방식이 아니라, 데이터 파이프라인의 실행 순서, 의존성, 재실행 안전성, 검증 단계를 관리하도록 구성했다.
+
+수집 단계는 setup_retail_pipeline, 가공 단계는 retail_pipeline으로 분리하여 DAG의 역할을 명확히 구분했다.
 
 
 
@@ -568,5 +686,5 @@ dag에서 DB 초기화 및 stream 실행 구성
 - `batch_mart` 구현 완료
 - 상품 description parsing 고도화
 - customer/product insert-merge 저장 (현재는 overwrite)
-- Airflow DAG 연결
+- Airflow DAG 연결 및 dim, mart 실행 검증
 - Dashboard 구현
