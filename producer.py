@@ -29,64 +29,115 @@ def json_serializer(data) :
     return json.dumps(data).encode('utf-8')
 
 def get_csv_message():
-
     # 데이터 불러오기
-    df = pd.read_csv('data/online_retail.csv')
+    df = pd.read_csv("data/online_retail.csv")
 
-    # 날짜를 시간순 오름차순 처리하기
-    # 날짜 시간 변환 실패 시 제외
+    # Airflow에서 전달받는 처리 구간
+    target_start = os.getenv("TARGET_START")
+    target_end = os.getenv("TARGET_END")
+
+    # 날짜 변환
     df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
-    df = df.dropna(subset=["InvoiceDate"]).sort_values(by=["InvoiceDate", "InvoiceNo"], ascending=[True, True], kind="mergesort").reset_index(drop=True)
+    df = df.dropna(subset=["InvoiceDate"])
 
-    message = []
+    # 2026.04.29 - 스케줄용 timestamp 추가
+    # 2010 -> 2025, 2011 -> 2026
+    df["targetDate"] = df["InvoiceDate"] + pd.DateOffset(years=15)
 
-    # 26.04.25 invoice_no 변경 시. 주문 완료 태그 전달
-    invoice_no = '';
+    # target interval 기준 필터링
+    if target_start and target_end:
+        start_ts = pd.to_datetime(target_start).tz_localize(None)
+        end_ts = pd.to_datetime(target_end).tz_localize(None)
+
+        df = df[
+            (df["targetDate"] >= start_ts) &
+            (df["targetDate"] < end_ts)
+        ]
+
+    # 날짜 시간순 오름차순 정렬
+    df = df.sort_values(
+        by=["InvoiceDate", "InvoiceNo"],
+        ascending=[True, True],
+        kind="mergesort"
+    ).reset_index(drop=True)
+
+    messages = []
+
+    prev_invoice_no = None
 
     for _, row in df.iterrows():
-        msg = {}
+        current_invoice_no = str(row["InvoiceNo"])
 
-        msg['invoice_no'] = invoice_no
-        msg['event_type'] = 'cancel' if msg['invoice_no'].startswith('C') else "order"
+        # 주문번호가 바뀌는 순간, 이전 주문 완료 메시지 추가
+        if prev_invoice_no is not None and prev_invoice_no != current_invoice_no:
+            messages.append({
+                "invoice_no": prev_invoice_no,
+                "event_type": "cancel" if prev_invoice_no.startswith("C") else "order",
+                "message": {
+                    "tag": "complete",
+                    "invoice_no": prev_invoice_no
+                }
+            })
 
-        if invoice_no != str(row["InvoiceNo"]) :
-            msg['message'] = {'tag':'complete', 'invoice_no': invoice_no}
-            
-            invoice_no = str(row["InvoiceNo"])
+        stock_code = str(row["StockCode"])
+        category = "ETC" if stock_code.isdigit() else stock_code[-1]
+        normalized_stock_code = stock_code if category == "ETC" else stock_code[:-1]
 
-        else :
-            
-            category = 'ETC' if row["StockCode"].isdigit() else str(row["StockCode"])[-1];
-            
-            msg['message'] = {
-                'tag' : 'in_process',
-                "event_id": f"{row['InvoiceNo']}-{row['StockCode']}",
-                "event_type": "cancel" if str(row["InvoiceNo"]).startswith("C") else "order",
-                "invoice_no": str(row["InvoiceNo"]),
-                "stock_code": str(row["StockCode"]) if category == 'ETC' else str(row["StockCode"])[:-1],
+        event_type = "cancel" if current_invoice_no.startswith("C") else "order"
+
+        msg = {
+            "invoice_no": current_invoice_no,
+            "event_type": event_type,
+            "message": {
+                "tag": "in_process",
+                "event_id": f"{current_invoice_no}-{stock_code}",
+                "event_type": event_type,
+                "invoice_no": current_invoice_no,
+                "stock_code": normalized_stock_code,
                 "category": category,
                 "description": None if pd.isna(row["Description"]) else str(row["Description"]),
                 "quantity": int(row["Quantity"]),
                 "unit_price": float(row["UnitPrice"]),
                 "customer_id": None if pd.isna(row["CustomerID"]) else str(int(row["CustomerID"])),
                 "country": str(row["Country"]),
-                "invoice_timestamp": str(row["InvoiceDate"]),
+
+                # 원본 timestamp
+                "original_invoice_timestamp": row["InvoiceDate"].isoformat(),
+
+                # Airflow 스케줄 기준으로 변환한 timestamp
+                "invoice_timestamp": row["targetDate"].isoformat(),
+                "target_date": row["targetDate"].strftime("%Y-%m-%d"),
+                "target_time": row["targetDate"].strftime("%H:%M:%S"),
+
                 "metadata": {
                     "source": "online_retail_csv",
                     "version": "v1"
                 }
             }
+        }
 
-        message.append(msg);
-    
-    return message;       
+        messages.append(msg)
 
+        prev_invoice_no = current_invoice_no
 
-def trigger_airflow(start, end):
-    subprocess.run([
-        "airflow", "dags", "trigger", "retail_pipeline",
-        "--conf", json.dumps({"start": start, "end": end})
-    ], check=True)
+    # 마지막 주문 complete 메시지 추가
+    if prev_invoice_no is not None:
+        messages.append({
+            "invoice_no": prev_invoice_no,
+            "event_type": "cancel" if prev_invoice_no.startswith("C") else "order",
+            "message": {
+                "tag": "complete",
+                "invoice_no": prev_invoice_no
+            }
+        })
+
+    return messages
+
+# def trigger_airflow(start, end):
+#     subprocess.run([
+#         "airflow", "dags", "trigger", "retail_pipeline",
+#         "--conf", json.dumps({"start": start, "end": end})
+#     ], check=True)
 
 
 def main():
@@ -96,29 +147,34 @@ def main():
     try : 
         data = get_csv_message();
 
-        prev_date = None
+        print(f"[Producer] message count: {len(data)}")
+
         for msg in data:
-            message = msg['message']
-            if 'invoice_timestamp' in message:
-                current_date = pd.to_datetime(message['invoice_timestamp']).date()
-                if prev_date and current_date != prev_date:
-                    trigger_airflow(
-                        f"{prev_date.isoformat()}T00:00:00",
-                        f"{current_date.isoformat()}T00:00:00"
-                    )
-                prev_date = current_date
+            message = msg["message"]
+            invoice_no = msg.get("invoice_no")
+            event_type = msg.get("event_type")
 
-            #메세지 전송 (비동기)
-            future = producer.send("retail-events", key=msg['invoice_no'], value=message)
-
-            print(f'retail message : {msg["event_type"]} - {message} \n');
-            time.sleep(0.5)
-
-        if prev_date is not None:
-            trigger_airflow(
-                f"{prev_date.isoformat()}T00:00:00",
-                f"{(prev_date + timedelta(days=1)).isoformat()}T00:00:00"
+            future = producer.send(
+                "retail-events",
+                key=invoice_no,
+                value=message
             )
+
+            metadata = future.get(timeout=10)
+
+            print(
+                f"[Kafka Sent] topic={metadata.topic}, "
+                f"partition={metadata.partition}, "
+                f"offset={metadata.offset}, "
+                f"event_type={event_type}, "
+                f"invoice_no={invoice_no}, "
+                f"message={message}"
+            )
+
+            time.sleep(0.1)
+
+        producer.flush()
+        print("[Producer] all messages flushed")
     
     except KeyboardInterrupt:
         print("프로듀서 종료")

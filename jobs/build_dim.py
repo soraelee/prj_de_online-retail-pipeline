@@ -29,24 +29,24 @@ def create_spark_session():
     )
 
 
-def read_raw(spark, start_ts=None, end_ts=None):
+def read_raw(spark):
     df = spark.read.jdbc(
         url=JDBC_URL,
         table="raw_retail_events",
         properties=JDBC_PROPERTIES
     )
-    if start_ts and end_ts:
-        df = df.filter(
-            (col("invoice_timestamp") >= lit(start_ts)) &
-            (col("invoice_timestamp") < lit(end_ts))
-        )
+    # if start_ts and end_ts:
+    #     df = df.filter(
+    #         (col("invoice_timestamp") >= lit(start_ts)) &
+    #         (col("invoice_timestamp") < lit(end_ts))
+    #     )
     return df
 
 # 고객 데이터 생성
 def build_dim_customer(raw_df):
     order_df = raw_df.filter(
         (col("event_type") == "order") &
-        col("customer_id").isNotNull()
+        col("customer_id").isNotNull()          # 고객ID 없는 데이터는 dim_customer에 적재하지 않음
     )
 
     return (
@@ -108,12 +108,12 @@ def parse_args():
 
 
 def main():
-    args = parse_args()
+    # args = parse_args()
 
     spark = create_spark_session()
     spark.sparkContext.setLogLevel("WARN")
 
-    raw_df = read_raw(spark, start_ts=args.start, end_ts=args.end)
+    raw_df = read_raw(spark)
 
     dim_customer_df = build_dim_customer(raw_df)
     dim_product_df = build_dim_product(raw_df)

@@ -1,25 +1,51 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Default 설정
+default_args = {
+    'owner': 'sorae',
+    'retries': 3,
+    'retry_delay': timedelta(seconds=10),
+    'start_date': datetime(2025, 12, 1),
+}
 
 with DAG(
     dag_id="setup_retail_pipeline",
-    start_date=datetime(2026, 4, 1),
+    default_args=default_args,
+    # schedule='@hourly',
     schedule=None,
     catchup=False,
+    max_active_runs=1,
+    max_active_tasks=1,
 ) as dag:
 
     reset_tables = BashOperator(
         task_id="reset_tables",
         bash_command="""
-        docker exec postgres psql -U postgres -d retail_pipeline -c "
-        TRUNCATE TABLE raw_retail_events RESTART IDENTITY CASCADE;
-        TRUNCATE TABLE order_info RESTART IDENTITY CASCADE;
-        TRUNCATE TABLE order_detail RESTART IDENTITY CASCADE;
-        TRUNCATE TABLE dim_customer RESTART IDENTITY CASCADE;
-        TRUNCATE TABLE dim_product RESTART IDENTITY CASCADE;
-        TRUNCATE TABLE mart_daily_orders RESTART IDENTITY CASCADE;
-         "
+        docker exec postgres psql -U postgres -d retail_pipeline <<'SQL'
+
+        -- 1. target interval 주문번호 기준 detail 삭제
+        DELETE FROM order_detail
+        WHERE invoice_no IN (
+            SELECT invoice_no
+            FROM order_info
+            WHERE invoice_timestamp >= '{{dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+            AND invoice_timestamp <  '{{dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}'
+        );
+
+        -- 2. order_info 삭제
+        DELETE FROM order_info
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
+
+        -- 3. raw 삭제
+        DELETE FROM raw_retail_events
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
+
+        SQL
+
         docker exec spark-master rm -rf /tmp/checkpoints/retail_events_raw
         """
     )
@@ -65,14 +91,23 @@ with DAG(
 
     run_collector = BashOperator(
         task_id="run_collector",
-        bash_command="docker start -a collector"
+#        bash_command="docker start -a collector"
+        bash_command="""
+            docker compose run --rm \
+            -e TARGET_START='{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}' \
+            -e TARGET_END='{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}' \
+            collector
+        """
     )
 
     check_raw_count = BashOperator(
         task_id="check_raw_count",
         bash_command="""
         docker exec postgres psql -U postgres -d retail_pipeline -c "
-        SELECT COUNT(*) FROM raw_retail_events;
+        SELECT COUNT(*) AS interval_count
+        FROM raw_retail_events
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+          AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
         "
         """
     )

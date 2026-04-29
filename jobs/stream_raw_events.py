@@ -77,7 +77,10 @@ def parse_data(kafka_df):
         StructField("unit_price", DecimalType(10, 2), True),
         StructField("customer_id", StringType(), True),
         StructField("country", StringType(), True),
+        StructField("original_invoice_timestamp", StringType(), True),
         StructField("invoice_timestamp", StringType(), True),
+        StructField("target_date", StringType(), True),
+        StructField("target_time", StringType(), True),
         StructField("tag", StringType(), True)
     ])
 
@@ -90,6 +93,7 @@ def parse_data(kafka_df):
             from_json(col("message_value"), schema).alias("data")
         )
         .select("message_key", "data.*")
+        .withColumn("org_invoice_timestamp", to_timestamp("original_invoice_timestamp")) \
         .withColumn("invoice_timestamp", to_timestamp(col("invoice_timestamp")))
         .withColumn("invoice_date", to_date(col("invoice_timestamp")))
         .withColumn("invoice_time", date_format(col("invoice_timestamp"), "HH:mm:ss"))
@@ -128,6 +132,7 @@ def parse_data(kafka_df):
             "invoice_timestamp",
             "invoice_date",
             "invoice_time",
+            "org_invoice_timestamp",
             "ingested_at",
             "load_run_id",
             "tag"
