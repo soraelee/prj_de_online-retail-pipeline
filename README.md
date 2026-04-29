@@ -679,7 +679,210 @@ Airflow를 통해 단순히 스크립트를 순서대로 실행하는 방식이 
 
 수집 단계는 setup_retail_pipeline, 가공 단계는 retail_pipeline으로 분리하여 DAG의 역할을 명확히 구분했다.
 
+---
+# 2026.04.30 수정사항
 
+### target_date 구성 및 target_date에 맞게 스케줄 구성
+```
+기존 방식:
+실행할 때마다 raw 전체 TRUNCATE
+→ 전체 CSV 재전송
+→ 전체 raw 재적재
+→ 전체 mart 재생성
+
+개선 방식:
+Airflow 실행 구간 또는 target_datetime 기준
+→ 해당 날짜/시간 구간 데이터만 전송
+→ 해당 구간 raw만 적재/재처리
+→ 해당 구간 mart만 재생성
+```
+
+## 진행 순서
+1. raw_retail_events drop 후 새 컬럼 포함해서 재생성
+2. order_info / order_detail에 invoice_timestamp, invoice_date 추가
+3. producer.py에서 targetDate 기준 필터링 확인
+4. stream_raw_events.py schema/write 컬럼 반영
+5. setup_retail_pipeline schedule="@hourly" 설정
+6. 작은 시간 구간 수동 trigger 또는 backfill 테스트
+7. raw/order_info/order_detail 적재 확인
+8. retail_pipeline schedule="@daily" 설정
+9. daily mart 생성 확인
+10. 그 다음 catchup=True 또는 backfill 범위 확장
+
+> setup_retail_pipeline DAG는 `@hourly` 스케줄로 구성하여 Airflow의 `data_interval_start`, `data_interval_end` 기준으로 1시간 단위 이벤트를 수집한다. Producer는 원본 `InvoiceDate`를 15년 이동한 `invoice_timestamp` 기준으로 필터링하여 해당 interval에 속하는 이벤트만 Kafka로 발행한다.
+retail_pipeline DAG는 `@daily` 스케줄로 구성하여 하루 단위로 적재된 raw/order 데이터를 기반으로dimension 및 mart 테이블을 생성한다.
+초기 구현에서는 전체 테이블을 `TRUNCATE`하는 방식으로 재실행을 처리했으나, 스케줄 기반 처리로 확장하면서 target interval에 해당하는 데이터만 삭제 후 재적재하도록 변경하였다. 이를 통해 전체 데이터가 아닌 시간 구간 단위 재처리가 가능하도록 구성했다.
+
+## Producer
+```python
+target_start = os.getenv("TARGET_START")
+target_end = os.getenv("TARGET_END")
+
+df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
+if target_start and target_end:
+start_ts = pd.to_datetime(target_start).tz_localize(None)
+end_ts = pd.to_datetime(target_end).tz_localize(None)
+
+df = df[
+(df["target_date"] >= start_ts) &
+(df["target_date"] < end_ts)
+].dropna(subset=["InvoiceDate"]).sort_values(by=["InvoiceDate", "InvoiceNo"], ascending=[True, True], kind="mergesort").reset_index(drop=True)
+
+```
+
+## Airflow 
+
+#### DAG 스케줄 변경
+##### setup_retail_pipeline
+```python
+# Default 설정
+
+default_args = {
+'owner': 'sorae',
+'retries': 3,
+'retry_delay': timedelta(seconds=10),
+'start_date': datetime(2025, 12, 1),
+}
+
+with DAG(
+dag_id="setup_retail_pipeline",
+default_args=default_args,
+schedule='@hourly',
+catchup=False,
+) as dag:
+```
+
+##### retail_pipeline_dag
+```python
+# Default 설정
+
+default_args = {
+'owner': 'sorae',
+'retries': 3,
+'retry_delay': timedelta(minutes=5),
+'start_date': datetime(2025, 12, 1),
+}
+
+dag = DAG(
+'retail_pipeline',
+default_args=default_args,
+description='Retail Data Pipeline: Dimension & Mart Build',
+schedule_interval='@daily',
+catchup=False,
+)
+```
+#### 테이블 reset task
+##### setup_retail_pipeline
+```sql
+-- 1. target interval 주문번호 기준 detail 삭제
+DELETE FROM order_detail
+WHERE invoice_no IN (
+    SELECT invoice_no
+    FROM order_info
+    WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
+      AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}'
+);
+
+-- 2. order_info 삭제
+DELETE FROM order_info
+WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
+  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
+
+-- 3. raw 삭제
+DELETE FROM raw_retail_events
+WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
+  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
+
+```
+
+##### retail_pipeline_dag
+```sql
+-- 1. dim_customer 삭제
+
+TRUNCATE TABLE dim_customer;
+
+-- 2. dim_product 삭제
+
+TRUNCATE TABLE dim_product;
+
+-- 3. dim_customer rebuild
+
+INSERT INTO dim_customer (
+    customer_id,
+    first_purchase_at,
+    last_purchase_at,
+    total_order_count,
+    country
+)
+SELECT
+    customer_id,
+    MIN(invoice_timestamp) AS first_purchase_at,
+    MAX(invoice_timestamp) AS last_purchase_at,
+    COUNT(DISTINCT invoice_no) AS total_order_count,
+    MAX(country) AS country
+FROM raw_retail_events
+WHERE customer_id IS NOT NULL
+AND event_type = 'order'
+GROUP BY customer_id;
+
+
+-- 4. dim_product rebuild
+
+INSERT INTO dim_product (
+stock_code,
+category,
+description,
+latest_unit_price
+)
+
+SELECT
+stock_code,
+MAX(category) AS category,
+MAX(description) AS description,
+MAX(unit_price) AS latest_unit_price
+FROM raw_retail_events
+WHERE stock_code IS NOT NULL
+GROUP BY stock_code;
+
+-- 5. 해당 날짜 mart 삭제
+
+DELETE FROM mart_daily_orders
+WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
+
+-- 6. 해당 날짜 mart product 삭제
+DELETE FROM mart_product_sales
+WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
+  
+
+-- 7. 해당 날짜 mart customer repeat 삭제
+
+DELETE FROM mart_customer_repeats
+WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
+```
+
+#### collector(producer 실행)
+```python
+run_collector = BashOperator(
+task_id="run_collector",
+
+# bash_command="docker start -a collector"
+bash_command="""
+docker compose run --rm \
+-e TARGET_START='{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}' \
+-e TARGET_END='{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}' \
+collector
+"""
+
+)
+```
+
+### backfill 진행 로직
+```bash
+docker compose exec airflow airflow dags backfill \
+  -s 2025-12-01T00:00:00 \
+  -e 2025-12-02T00:00:00 \
+  setup_retail_pipeline
+```
 
 ## 향후 계획
 
