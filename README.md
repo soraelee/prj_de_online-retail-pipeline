@@ -698,16 +698,13 @@ Airflow 실행 구간 또는 target_datetime 기준
 ```
 
 ## 진행 순서
-1. raw_retail_events drop 후 새 컬럼 포함해서 재생성
-2. order_info / order_detail에 invoice_timestamp, invoice_date 추가
-3. producer.py에서 targetDate 기준 필터링 확인
-4. stream_raw_events.py schema/write 컬럼 반영
-5. setup_retail_pipeline schedule="@hourly" 설정
-6. 작은 시간 구간 수동 trigger 또는 backfill 테스트
-7. raw/order_info/order_detail 적재 확인
-8. retail_pipeline schedule="@daily" 설정
-9. daily mart 생성 확인
-10. 그 다음 catchup=True 또는 backfill 범위 확장
+1. producer.py에서 targetDate 기준 필터링 확인
+2. stream_raw_events.py schema/write 컬럼 반영
+3. setup_retail_pipeline schedule="@hourly" 설정
+4. 작은 시간 구간 수동 trigger 또는 backfill 테스트
+5. raw/order_info/order_detail 적재 확인
+6. retail_pipeline schedule="@daily" 설정
+7. daily dim / mart 생성 schedule="@daily"
 
 > setup_retail_pipeline DAG는 `@hourly` 스케줄로 구성하여 Airflow의 `data_interval_start`, `data_interval_end` 기준으로 1시간 단위 이벤트를 수집한다. Producer는 원본 `InvoiceDate`를 15년 이동한 `invoice_timestamp` 기준으로 필터링하여 해당 interval에 속하는 이벤트만 Kafka로 발행한다.
 retail_pipeline DAG는 `@daily` 스케줄로 구성하여 하루 단위로 적재된 raw/order 데이터를 기반으로dimension 및 mart 테이블을 생성한다.
@@ -829,17 +826,16 @@ GROUP BY customer_id;
 -- 4. dim_product rebuild
 
 INSERT INTO dim_product (
-stock_code,
-category,
-description,
-latest_unit_price
+	stock_code,
+	category,
+	description,
+	latest_unit_price
 )
-
 SELECT
-stock_code,
-MAX(category) AS category,
-MAX(description) AS description,
-MAX(unit_price) AS latest_unit_price
+		stock_code,
+		MAX(category) AS category,
+		MAX(description) AS description,
+		MAX(unit_price) AS latest_unit_price
 FROM raw_retail_events
 WHERE stock_code IS NOT NULL
 GROUP BY stock_code;
