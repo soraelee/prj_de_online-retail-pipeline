@@ -779,19 +779,19 @@ DELETE FROM order_detail
 WHERE invoice_no IN (
     SELECT invoice_no
     FROM order_info
-    WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-      AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}'
+    WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+      AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}'
 );
 
 -- 2. order_info 삭제
 DELETE FROM order_info
-WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
+WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+  AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
 
 -- 3. raw 삭제
 DELETE FROM raw_retail_events
-WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
+WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
+  AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
 
 ```
 
@@ -868,8 +868,8 @@ task_id="run_collector",
 # bash_command="docker start -a collector"
 bash_command="""
 docker compose run --rm \
--e TARGET_START='{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}' \
--e TARGET_END='{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}' \
+-e TARGET_START='{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}' \
+-e TARGET_END='{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}' \
 collector
 """
 
@@ -882,6 +882,11 @@ docker compose exec airflow airflow dags backfill \
   -s 2025-12-01T00:00:00 \
   -e 2025-12-02T00:00:00 \
   setup_retail_pipeline
+```
+
+```bash
+airflow dags trigger setup_retail_pipeline \
+  --conf '{"target_start":"2025-12-01 00:00:00","target_end":"2025-12-02 00:00:00"}'
 ```
 
 ## 향후 계획
