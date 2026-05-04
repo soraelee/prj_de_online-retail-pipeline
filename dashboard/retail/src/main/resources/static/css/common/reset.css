@@ -1,0 +1,43 @@
+@charset "utf-8";
+
+*{
+	margin: 0;
+	padding: 0;
+	vertical-align: top;
+	border: 0;
+	outline: 0;
+	box-sizing: border-box;
+	font-family: 'pretendard', sans-serif;
+	font-weight: 500;
+	background-position: center;
+	background-repeat: no-repeat;
+	font-size: 14px;
+	color: var(--color_12);
+}
+
+
+*:after{background-position: center;background-repeat: no-repeat;}
+a {color: #000;text-decoration: none;background-color: transparent; outline: none}
+article,aside,details,figcaption,figure, footer,header,hgroup,menu,nav,section{display: block;}
+ul,ol,li {list-style: none;}
+video{ width: 100%; }
+table{border-spacing: 0;border-collapse: collapse;}
+table td,table th {vertical-align: middle;}
+label{cursor: pointer;}
+select{color: #000;}
+button{cursor: pointer;background-color: transparent; color: #000;cursor: pointer;}
+img{border:0; vertical-align: top; width: 100%;}
+fieldset{border: none;}
+i,address,caption,cite,code,em,strong,th,var{ font-style: normal; font-weight: normal;}
+a:focus {outline: 0;}
+a:hover, a:visited, a:link, a:active {text-decoration: none; color:#000; background-color:transparent;}
+
+
+
+input:disabled, textarea:disabled, 
+input:disabled::placeholder, 
+textarea:disabled::placeholder {
+    color: currentcolor;
+    -webkit-text-fill-color: currentcolor; /* 1. sets text fill to current `color` for safari */
+    opacity: 1; /* 2. correct opacity on iOS */
+}

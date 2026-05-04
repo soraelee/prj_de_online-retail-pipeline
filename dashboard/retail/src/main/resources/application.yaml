@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: retail
+
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+
+server:
+  port: 8082
+
+retail-api:
+  base-url: ${RETAIL_API_BASE_URL:http://localhost:8000}

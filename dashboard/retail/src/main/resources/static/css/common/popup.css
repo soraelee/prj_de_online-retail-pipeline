@@ -1,0 +1,428 @@
+/*
+[popup layout]
+._popup
+ㅤㅤ▷.dim (투명배경)
+ㅤㅤ▷._actdim (투명배경 / 클릭시 닫기)
+ㅤㅤㅤㅤㅤ▷.popBox _팝업넓이
+ㅤㅤㅤㅤㅤ▷.head
+ㅤㅤㅤㅤㅤㅤㅤㅤ▷.popCon
+ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ▷.content (wrap_단일 / bg fff / padding 24) 
+ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ▷.contentBasic (wrap_단일 / column / gap 10 / padding 24)
+ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ▷.contentBasic.scroll (max-height / scroll)
+ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ▷.content.scroll(max-height / scroll)
+*/
+
+
+
+
+/*팝업 - arert*/
+._dim { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); } 
+._alertPop { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 110; } 
+._alertPop .box { animation: popupalert 0.5s ease-out; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); background-color: var(--color_01); border: 4px solid var(--color_00); box-shadow: -70px 60px 50px rgba(68, 68, 68, 0.4); width: 360px; padding: 24px; } 
+._alertPop .box .txtBox { display: flex; flex-direction: column; gap: 10px; } 
+._alertPop .box .txtBox .tit { font-size: 16px; font-weight: 600; line-height: 24px; } 
+._alertPop .box .txtBox .txt { line-height: 22px; } 
+._alertPop .box .btnBox { margin-top: 30px; display: flex; justify-content: end; } 
+._alertPop .box .btnBox button { height: 32px; padding: 0 10px; border-radius: 5px; font-size: 16px; gap: 6px; font-weight: 700; transition: 0.2s all; } 
+._alertPop .box .btnBox button:hover { background-color: var(--color_03); } 
+._alertPop .box .btnBox button.colG { color: var(--color_08); } 
+._alertPop .box .btnBox button.colR { color: var(--red); } 
+._alertPop .box .btnBox button.colB { color: var(--blue); } 
+._alertPop .dim { background-color: rgba(0,0,0,0.5); position: fixed; left: 0; top: 0; width: 100%; height: 100%;; } 
+._alertPop ._actdim { background-color: rgba(0,0,0,0.7); position: fixed; left: 0; top: 0; width: 100%; height: 100%;; } 
+
+@keyframes popup { 
+ from { transform: translateY(100px); opacity: 0; } 
+to { transform: translateY(0); opacity: 1; } 
+ }
+@keyframes popupalert { 
+ from { transform: translate(-50%,-100px); opacity: 0; } 
+to { transform: translateY(-50%,-50%); opacity: 1; } 
+ }
+
+._popup .popBox .popCon::-webkit-scrollbar { width:6px; height: 6px; padding-left: 10px; } 
+._popup .popBox .popCon::-webkit-scrollbar-track-piece { background-color:var(--color_05) } 
+._popup .popBox .popCon::-webkit-scrollbar-thumb { background-color:var(--color_07); } 
+._popup .popBox .popCon::-webkit-scrollbar-button:start { display: none; } 
+._popup .popBox .popCon::-webkit-scrollbar-button:end { display: none; } 
+._popup .popBox .popCon::-webkit-scrollbar-corner { background-color: var(--color_06); } 
+._popup .popBox .popCon::-webkit-scrollbar-thumb:hover { background-color:var(--color_08); } 
+
+._popup { position: fixed; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; z-index: 110; left: 0; top: 0; } 
+._popup .dim { background-color: rgba(0,0,0,0.5); position: fixed; left: 0; top: 0; width: 100%; height: 100%;; } 
+._popup ._actdim { background-color: rgba(0,0,0,0.5); position: fixed; left: 0; top: 0; width: 100%; height: 100%;; } 
+
+._popup .popBox { animation: popup 0.5s ease-out; background: rgba(219, 219, 219, 0.6); border: 1px solid #FFFFFF; box-shadow: -70px 60px 50px rgba(68, 68, 68, 0.4); backdrop-filter: blur(5px); padding: 6px; max-height: 90%; min-height: 20%; display: flex; flex-direction: column; overflow: hidden; } 
+._popup .popBox .head { cursor: move; display: flex; justify-content: space-between; align-items: center; padding: 0px 0px 0px 24px; width: 100%; background: #FFFFFF; border-bottom: 1px solid #E2E2E2; } 
+._popup .popBox .head .popName { font:var(--head_B); color: var(--color_13); } 
+._popup .popBox .head button { width: 48px;; padding: 18px; } 
+._popup .popBox .popCon { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px; background: var(--color_02); border: 1px solid var(--color_00); } 
+._popup .popBox .popConRow { flex: 1; display: flex; flex-direction: row; overflow: hidden; padding: 12px; background: var(--color_02); border: 1px solid var(--color_00); gap: 12px; } 
+._popup .popBox .popConCol { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px; background: var(--color_02); border: 1px solid var(--color_00); gap: 12px; } 
+._popup .popBox .popCon.scroll { overflow: auto;; } 
+._popup .popBox .popConRow.scroll { overflow: auto;; } 
+._popup .popBox .content.scroll { overflow: auto; } 
+._popup .popBox .contentBasic.scroll { overflow: auto; } 
+._popup .popBox .content { flex: 1; display: flex; padding: 24px; background-color: var(--color_00); flex-direction: column; overflow: hidden; } 
+._popup .popBox .contentBasic { flex: 1; display: flex; padding: 24px; background-color: var(--color_00); flex-direction: column; overflow: hidden; gap: 10px; } 
+._popup .popBox ._tableBox._scroll { flex: 1; } 
+._popup .popBox .contentBasic.scroll { overflow: auto;; } 
+._popup .popBox ._actBox { display: none; } 
+
+._popup .popBox .ui-datepicker { z-index: 111!important; } 
+._popup .popBox._480 { width: 480px; } 
+._popup .popBox._500 { width: 500px; } 
+._popup .popBox._600 { width: 600px; } 
+._popup .popBox._700 { width: 700px; } 
+._popup .popBox._800 { width: 800px; } 
+._popup .popBox._960 { width: 960px; } 
+._popup .popBox._1080 { width: 1080px; } 
+._popup .popBox._1200 { width: 1200px; } 
+._popup .popBox._1600 { width:1600px; } 
+
+
+
+
+/*공지사항/등록/수정*/
+._popup.noticeSave .popBox { height: 80%; } 
+._popup.noticeSave .popBox .popCon { display: flex; flex-direction: row; flex-wrap: wrap; } 
+._popup.noticeSave .popBox .popCon .content { display: flex; height: 100%; flex: initial; } 
+._popup.noticeSave .popBox .popCon .content.writingArea { width: 680px; padding-right: 24px; gap: 10px; display: flex; flex-direction: column; height: 100%; } 
+._popup.noticeSave .popBox .popCon .content.writingArea textarea { width: 100%; height: 580px; } 
+._popup.noticeSave .popBox .popCon .content.employeeList ._tableLayout { width: 100%; } 
+._popup.noticeSave .popBox .popCon .content.employeeList ._tableLayout ._tableBox { flex:1; overflow-y: auto;; } 
+._popup.noticeSave .popBox .popCon .content.employeeList { width: calc(100% - 680px); display: flex; border-left: var(--basic_line); } 
+._popup.noticeSave .popBox .popCon ._fileAdd { width: 520px; } 
+._popup.noticeSave .popBox .popCon ._fileAdd.multiple .fileNameList { display: flex; flex-direction: column; gap:4px; padding: 10px 0; width: calc(100% - 100px); } 
+._popup.noticeSave .popBox .popCon ._fileAdd.multiple .fileNameList li { width: 100%; } 
+._popup.noticeSave .popBox .popCon ._fileAdd.multiple .fileName { max-width: calc(100% - 36px); } 
+
+
+/*공지사항/등록/수정*/
+._popup.noticeDetail .popBox { height: 70%; } 
+._popup.noticeDetail .down { color: var(--blue); text-decoration: underline; cursor: pointer; } 
+._popup.noticeDetail .txtBox { max-height: 100%; line-height: 24px; padding: 24px; border: var(--basic_line); flex:1; overflow: auto;; } 
+
+
+
+/*불량부위*/
+._popup.multiFaultyPart .popBox .popCon .content { gap: 24px; flex-direction: row; } 
+._popup.multiFaultyPart .content .topLevel { width: 300px; } 
+._popup.multiFaultyPart .content .set { width: calc(100% - 300px); display: flex; flex-direction: column; gap: 10px; border-left: var(--basic_line); padding-left: 24px } 
+._popup.multiFaultyPart .content .set ._tableBox { flex-grow: 1; } 
+/*적용모델 - 다중*/
+._popup.multiModel .popBox { height: 80%; } 
+._popup.multiModel ._searchBox { width: 280px; } 
+/*처리유형*/
+._popup.multiDisposalClass .popBox { height: 80%; } 
+/*불량원인*/
+._popup.multiFaultyCause .popBox { height: 80%; } 
+
+/*직원정보*/
+._popup.staffBasicSave .popBox { height: 710px; } 
+._popup.staffBasicSave ._tab { justify-content: center; padding-bottom: 10px; } 
+._popup.staffBasicSave ._bottomBtnBox { margin-top: 10px; } 
+
+
+/*전체 사원정보*/
+._popup.multiStaff .popBox { height: 72%; } 
+._popup.multiStaff .popBox .filter { display: flex; gap: 10px; } 
+
+/*제품소분류(단일선택)*/
+._popup.subProduct .popBox { height: 80%; } 
+
+/*제품소분류(다중선택)*/
+._popup.multisubProduct .popBox { height: 80%; } 
+
+/*거래처선택*/
+._popup.multiVendorCalculate .popBox { height: 60%; } 
+
+/*제품그룹 선택*/
+._popup.multiProductInfo .popBox { height: 60%; } 
+
+/*A/S접수*/
+._popup.orderInfoSave .remarks { height: 100%; min-width: 240px; width: 100%;; } 
+._popup.orderInfoSave th { width: 120px; } 
+
+
+/*적용모델 단일*/
+._popup.singleModel .popBox { height: 80%; } 
+._popup.singleModel ._searchBox { width: 280px; } 
+
+
+/*사원선택*/
+._popup.hrStaffList .popBox { height: 60%; } 
+._popup.hrStaffList ._searchBox { width: 240px; } 
+
+/*A/S상세*/
+._popup.orderInfoDetail .popBox .contentBasic .top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 24px;; border-bottom: var(--basic_line); margin-bottom: 10px; } 
+._popup.orderInfoDetail .popBox .contentBasic .top .orderInfo { display: flex; flex-direction: column; gap: 10px; } 
+._popup.orderInfoDetail .popBox ._table.aligH th { width: 120px; } 
+
+
+/*부품판매접수*/
+._popup.partSalesOrderSave .empty { min-height: 100px; } 
+._popup.partSalesOrderSave .remarks { height: 100%; min-width: 240px; width: 100%;; } 
+._popup.partSalesOrderSave th { width: 120px; } 
+._popup.partSalesOrderSave p input { height: 32px; border:0; } 
+._popup.partSalesOrderSave tr.total p { font-size: 13px; display: flex; gap: 6px; color: var(--color_08); } 
+._popup.partSalesOrderSave tr.total p span { font-size: 13px; } 
+
+
+/*부품선택*/
+._popup.partList .popBox { height: 80%; } 
+._popup.partList ._tableLayout { height: calc(100% - 450px); flex-grow: 1; } 
+._popup.partList ._tableBox { border-bottom: var(--basic_line); } 
+
+/*부품선택 - 다중*/
+._popup.multiPart .popBox { height: 80%; } 
+._popup.multiPart ._tableLayout { height: calc(100% - 450px); flex-grow: 1; } 
+._popup.multiPart ._tableBox { border-bottom: var(--basic_line); } 
+
+
+/*부품 판매 상세*/
+._popup.partSalesOrderDetail .aligH th { width: 120px; } 
+._popup.partSalesOrderDetail .popBox .contentBasic .top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 24px;; border-bottom: var(--basic_line); margin-bottom: 10px; } 
+._popup.partSalesOrderDetail .popBox .contentBasic .top .orderInfo { display: flex; flex-direction: column; gap: 10px; } 
+
+
+/*불량증상 및 부위 - 단일선택*/
+.singleFaultyPart .popBox { height: 60%; } 
+.singleFaultyPart .popBox .content { flex-direction: row; gap: 20px; } 
+.singleFaultyPart .popBox .content .topLevel { width: 40%; height: 100%; } 
+.singleFaultyPart .popBox .content .set { width: 60%; height: 100%; display: flex; flex-direction: column; gap: 10px; border-left: var(--basic_line); padding-left: 20px; } 
+
+/*불량원인 선택 - 단일선택*/
+.singleFaultyCause .popBox { height: 60%; } 
+
+/*처리유형 - 단일선택*/
+.singleDisposalClass .popBox { height: 60%; } 
+
+/*A/S접수검색,부품판매접수검색*/
+._popup.agentInfoAs .popBox { height: 80%; } 
+._popup.agentInfoPart .popBox { height: 80%; } 
+
+
+/*A/S처리 결과 조회-부품정보*/
+._popup.partInfo .popBox { height: 60%; } 
+._popup.partInfo ._tableBox.headFix._scroll ._table thead tr:nth-child(2) th { top: 30px; } 
+
+/*발송관리 설정 : 입금일/배송일/운송장번호*/
+._popup.salesDepositEdit .popBox { height: 86%; } 
+._popup.salesDepositEdit .contentBasic ._table th { width: 100px } 
+._popup.salesDepositEdit .contentBasic .total { position: absolute; right: 0; bottom: -30px; padding-bottom: 10px; display: flex; align-items: center; justify-content: end; gap: 10px; } 
+._popup.salesDepositEdit .contentBasic .total .txt { color: var(--color_07); } 
+._popup.salesDepositEdit .contentBasic .packing td { background-color: var(--color_01); } 
+._popup.salesDepositEdit .contentBasic ._tableLayout.partList th { width: initial; } 
+._popup.salesDepositEdit .contentBasic ._tableLayout {flex: 1; position: relative; } 
+._popup.salesDepositEdit .contentBasic ._dotTit { line-height: 16px; } 
+._popup.salesDepositEdit .popBox ._table.aligH th { width: 180px; } 
+._popup.salesDepositEdit .popBox .partList input { min-width: 50px; } 
+._popup.salesDepositEdit .popBox .partList input.num { width: 100px; } 
+._popup.salesDepositEdit .popBox .partList td .r { min-width: 100px; } 
+
+
+
+/*서비스맨 진행접수 확인*/
+._popup.servicemanProgress .popBox { min-height: 60%; } 
+
+/*독촉정보*/
+._popup.pushDetail th { width: 120px; } 
+
+/*견적서*/
+._popup.partsQuote .emailSen { display: flex; align-items: center; justify-content: space-between; } 
+._popup.partsQuote .emailSen input.basic { width: 320px; } 
+._popup.partsQuote .popBox .content { flex:none; } 
+._popup.partsQuote .popBox { min-height: 80%; max-height: 90%; } 
+._popup.partsQuote .popBox .quote { position:relative; flex: 1; } 
+._popup.partsQuote .quote > ._btn.blue { position: absolute; right:24px; top:24px; } 
+._popup.partsQuote .print { display: flex; flex-direction: column; gap: 30px; } 
+._popup.partsQuote .print .tit { font-size: 32px; font-weight: 800; text-align: center; line-height: 32px; } 
+._popup.partsQuote .print .info { display: flex; justify-content: space-between; } 
+._popup.partsQuote .print .info .quoteRecipient { display: flex; flex-direction: column; justify-content: space-between; padding: 10px 0; } 
+._popup.partsQuote .print .info .quoteRecipient .sender { display: flex; flex-direction: column; gap: 16px;; } 
+._popup.partsQuote .print .info .quoteRecipient .sender .company { font-size: 20px; font-weight: 700; } 
+._popup.partsQuote .print .info .quoteRecipient .quoteLabel { display: flex; flex-direction: column; gap: 10px;; } 
+._popup.partsQuote .print .info .quoteSender { width: 50%; } 
+._popup.partsQuote .print .info .quoteSender .img { text-align: center; } 
+._popup.partsQuote .print .info .quoteSender img { height: 30px; width: auto;; margin-left: 10px; } 
+._popup.partsQuote .print .quoteTable { border-top: 1px dashed var(--color_07); padding-top: 30px; } 
+._popup.partsQuote .print .totalBox { display: flex; border-top: 1px dashed var(--color_07); justify-content: space-between; padding-top: 30px; } 
+._popup.partsQuote .print .totalBox ul { display: flex; flex-direction: column; padding:8px 14px; border: var(--basic_line); gap: 10px; width: 360px; } 
+._popup.partsQuote .print .totalBox li { display: flex; justify-content: space-between; } 
+._popup.partsQuote .print .totalBox li.total { border-top: var(--basic_line); padding-top: 10px; } 
+._popup.partsQuote .print .totalBox li.total div { font-weight: 800; font-size: 16px; } 
+._popup.partsQuote .print.email { padding:36px; } 
+@media print { ._popup.partsQuote .popBox .emailSen { display: none; } 
+ }
+
+
+/*영수증*/
+._popup.receipt .popBox { height: 80%; } 
+._popup.receipt .popBox .popCon { position: relative; flex: 1; } 
+._popup.receipt .popBox .popCon .printBtn { margin-bottom: 6px; display: flex; justify-content: end; width: 100%; } 
+._popup.receipt .topBox { display: flex; align-items: end; justify-content: space-between; padding-bottom: 20px; position: relative; padding-top: 34px; } 
+._popup.receipt .topBox .tit { text-align: center; position: absolute; left: 50%; transform: translateX(-50%); } 
+._popup.receipt .topBox .tit span { font-size: 24px; font-weight: 800; line-height: 46px; } 
+._popup.receipt .companyInfo th p.tit { justify-content: center; font-weight: 500; background-color: var(--color_01); } 
+._popup.receipt .companyInfo .img img { width: 48px; } 
+._popup.receipt .companyInfo th { width: 100px; } 
+._popup.receipt .companyInfo { margin-bottom: 10px; } 
+._popup.receipt ._tableBox { border-top: 1px dashed var(--color_08); padding-top: 20px; margin-top: 20px; } 
+._popup.receipt .print { display: flex; flex-direction: column; gap: 20px; } 
+._popup.receipt .print .receiptSet { display: flex; flex-direction: column; gap: 36px; } 
+._popup.receipt .print .receiptSet .box { background-color:var(--color_00); padding:48px 24px; } 
+._popup.receipt .print .receiptSet .box .txt { text-align: center; font:var(--caption_R); margin-top: 20px; color: var(--color_10); } 
+._popup.receipt .print ._table td p { white-space: normal; overflow-wrap: anywhere; word-break: break-all; } 
+@media print { ._popup.receipt .print .receiptSet .box { page-break-after: always; } 
+._popup.receipt .print .receiptSet:first-of-type { page-break-before: auto; } 
+._popup.receipt .print .printNoBreak { white-space: nowrap!important; } 
+
+._popup.receipt.partnerSalesShippingReceipt .topBox .tit span { font-size: 20px; } 
+._popup.receipt.partnerSalesShippingReceipt .topBox * { font-size: 11px; } 
+._popup.receipt.partnerSalesShippingReceipt .print ._table p { font-size: 11px; line-height:1; } 
+._popup.receipt.partnerSalesShippingReceipt .print ._table td,._popup.receipt .print ._table th { height: 26px; } 
+._popup.receipt.partnerSalesShippingReceipt .print ._tableBox ._table td p,
+._popup.receipt.partnerSalesShippingReceipt .print ._tableBox ._table th p { padding: 0 8px; } 
+ }
+
+
+/*미수금관리*/
+._popup.costReceivableSet .popBox { height: 50%; } 
+._popup.costReceivableSet .content { display: flex; flex-direction: row; flex-wrap: wrap; gap: 20px; } 
+._popup.costReceivableSet .content.set { flex: 1; } 
+._popup.costReceivableSet .content.set .info { display: flex; flex-direction: column; background-color: var(--color_01); padding:8px 20px; } 
+._popup.costReceivableSet .content.set .info li { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; } 
+._popup.costReceivableSet .content.set .info li .tit { color: var(--color_09); } 
+._popup.costReceivableSet .content.set .info li .txt { font:var(--body_B); } 
+._popup.costReceivableSet .content.history { width: 360px; flex: none; } 
+._popup.costReceivableSet .content.history ._btn.edit { min-width: initial; } 
+._popup.costReceivableSet .content ._tableLayout { width: 100%; } 
+
+/*친절,불친절*/
+._popup.attitude .popBox { height: 60%; } 
+
+/*대행료정산 종합 상세 (업체)*/
+.agencyListVendorSave .aligH th { width: 140px; } 
+.agencyListVendorSave .aligH td input { background-color: var(--yellow_03); text-align: right; } 
+.agencyListVendorSave .aligH td .txt { line-height: 150%; padding: 10px 14px; } 
+.agencyListVendorSave .popBox .contentBasic { overflow: visible; } 
+
+/*거래처 등록*/
+.vendorSave .popBox ._table.aligH th { width: 110px; } 
+.vendorSave .popBox ._table ._btnSearch { min-width: 420px; } 
+
+/*대행료정산 종합 상세 (서비스맨)*/
+.agencyListServicemanSave .aligH th { width: 140px; } 
+.agencyListServicemanSave .aligH td input { background-color: var(--yellow_03); text-align: right; } 
+.agencyListServicemanSave .aligH td .txt { line-height: 150%; padding: 10px 14px; } 
+.agencyListServicemanSave .popBox .contentBasic { overflow: visible; } 
+
+/*우편번호*/
+._popup.zipCode .popBox { height: 600px; } 
+._popup.zipCode .popBox iframe { height: 100%; } 
+
+
+/*제품선택*/
+._popup.productPopup .popBox { height: 900px; } 
+
+/*지역코드 선택*/
+._popup.areaCodeList .popBox { height: 60%; } 
+._popup.areaCodeList ._searchBox { width: 240px; } 
+
+/*부품등록*/
+._popup.partInfoSave ._imgUploadBox { border:1px solid var(--color_06) } 
+._popup.partInfoSave .popBox { height:90%; } 
+._popup.partInfoSave .popBox ._table .empty { min-height:64px; } 
+._popup.partInfoSave .popBox ._table button.cost { text-align: left; } 
+._popup.partInfoSave .popBox ._table button.cost span { text-decoration: underline; } 
+._popup.partInfoSave .popBox ._tableLayout.priceSet th { width: 120px; } 
+
+
+
+
+/*업로드 결과*/
+._popup.uploadResults .popBox { min-height: initial; } 
+._popup.uploadResults ._textSet { justify-content: center; } 
+
+
+/*
+priceReg +
+원가: partCostReg
+업체단가:partVendorReg
+소비자단가:partConsumerReg
+삼성단가:partSamsungReg
+신흥단가관리:partShinhungReg
+*/
+._popup.priceReg .popBox { height: 80%; } 
+._popup.priceReg .popBox .priceRegBox { background-color: #fff; padding:20px 24px; display: flex; margin-bottom: 10px; gap: 10px;; align-items: center; } 
+._popup.priceReg .popBox .priceRegBox table { flex: 1; } 
+._popup.priceReg .popBox .priceRegBox table td { width: 200px; } 
+._popup.priceReg .popBox .priceRegBox table th { width: 72px; } 
+
+/*월정산현황*/
+._popup.vendorSettlementDetail .popBox { height: 80%; } 
+._popup.vendorSettlementDetail .popBox .top { display: flex; justify-content: space-between; } 
+
+/*기타업체별 판매관리*/
+._popup.otherVendorSalesDetail .popBox { height: 80%; } 
+
+/*협력업체 물류비 월별집계*/
+._popup.statsLogisticsCostDetail .popBox { height: 80%; } 
+
+
+/*서비스맨 협력업체 자재주문*/
+._popup.partnerOrderSave .popBox { height: 88%; } 
+._popup.partnerOrderSave .popCon { gap: 10px; } 
+._popup.partnerOrderSave .contentBasic .formTable { margin-bottom: 20px; } 
+._popup.partnerOrderSave .contentBasic .partList input { background-color: var(--yellow_03); } 
+._popup.partnerOrderSave .contentBasic .formTable th ._check { width: 100%; } 
+._popup.partnerOrderSave .contentBasic .formTable .radio { width: 48px; } 
+
+
+/*협력업체 부품판매 및 발송관리*/
+._popup.partnerSalesShippingSave .popBox { height: 88%; } 
+._popup.partnerSalesShippingSave .popBox ._formGroup { overflow: hidden; display: flex; } 
+._popup.partnerSalesShippingSave .popBox .top { display: flex; } 
+._popup.partnerSalesShippingSave .popBox ._tableLayout { flex: 0 0 auto; height: auto; } 
+._popup.partnerSalesShippingSave .popBox ._tableLayout.partList { width: 100%; overflow: hidden; flex: 1; } 
+._popup.partnerSalesShippingSave .popBox ._tableLayout.packing { width: 100%; } 
+._popup.partnerSalesShippingSave .popBox ._table.aligH th { width: 180px; } 
+._popup.partnerSalesShippingSave .popBox .partList input { min-width: 50px; } 
+._popup.partnerSalesShippingSave .popBox .partList input.num { width: 80px; } 
+._popup.partnerSalesShippingSave .popBox .partList td .r { min-width: 100px; } 
+
+/*협력업체 재고관리*/
+._popup.partnerStockDetail .popBox { height: 88%; } 
+/*직원 재고관리 상세*/
+._popup.employeeStockDetail .popBox { height: 88%; } 
+
+/*협력업체 월별 매입 관리*/
+._popup.partnerMonthlyPurchaseDetail .popBox { height: 88%; } 
+/*직원 월별 매입관리 상세*/
+._popup.employeeMonthlyPurchaseDetail .popBox { height: 88%; } 
+
+/*고객등록*/
+._popup.customerInfoSave ._bottomBtnBox > span { font-size:12px; color: var(--red); } 
+
+/*이미지 확대보기*/
+._popup.previewImg .popBox .contentBasic { gap: 40px; } 
+._popup.previewImg .previewImgBox { display: flex; align-items: center; justify-content: center; background-color: var(--color_01); border:var(--basic_line); max-width: 990px; max-height: 600px; width: 100%; height: 100%; overflow: hidden; } 
+._popup.previewImg .previewImgBox img { width: 100%; height: auto; max-width: 990px; max-height: 600px; object-fit: contain; display: block; } 
+._popup.previewImg .imgList { display: flex; gap: 10px; } 
+._popup.previewImg .imgList li { width: 100px; height: 100px; display: flex; cursor: pointer; align-items: center; overflow: hidden; border:var(--basic_line); background-color: var(--color_01); transition: 0.1s all; border:4px solid var(--color_05); } 
+._popup.previewImg .imgList li img { object-fit: cover; width: 100px; height: 100px; } 
+._popup.previewImg .imgList li.on { border:4px solid var(--blue) } 
+
+
+/*팝업 프린트 공통*/
+@media print { .wrapper { display: none; } 
+._popup { position: relative; width: 100%; } 
+._popup .popBox { overflow: visible; position: relative!important; left: 0!important; top: 0!important;; width: 100%!important; background:transparent; border:0; box-shadow: none; backdrop-filter: blur(0); padding: 0; max-height: initial; min-height:initial; height:100%!important; } 
+._popup .popBox .head { display: none; } 
+._popup .popBox ._actPrint { display: none; } 
+._popup .popBox .popConCol { width: 100%; padding: 0; } 
+._popup .popBox .popCon { padding: 0; } 
+body { overflow: auto; } 
+nav { display: none; } 
+ }

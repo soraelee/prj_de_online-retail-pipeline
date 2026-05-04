@@ -1,0 +1,56 @@
+:root {
+    --color_13: #000000;
+    --color_12: #1a1a1a;
+    --color_11: #333333;
+    --color_10: #4d4d4d;
+    --color_09: #666666;
+    --color_08: #808080;
+    --color_07: #cccccc;
+    --color_06: #e2e2e2;/*line color*/
+    --color_05: #ededed;
+    --color_04: #f0f0f0;
+    --color_03: #f2f2f2;
+    --color_02: #f4f4f4;
+    --color_01: #f8f8f8;
+    --color_00: #ffffff;
+
+    --blue: #6979f7;
+    --blue_02: #7f91ff;
+    --blue_03: #e6e7fb;
+    --green: #21a365;
+    --green_02: #8edbbe;
+    --green_03: #def5ec;
+    --red: #ff0b38;
+    --red_02: #ff9ea0;
+    --red_03: #ffdddd;
+    --mint: #00c7af;
+    --mint_02: #8ee3e5;
+    --mint_03: #cbffea;
+    --yellow: #f5c400;
+    --yellow_02: #f0dd96;
+    --yellow_03: #fffeeb;
+    --orange: #ff842c;
+    --orange_02: #f4c4a8;
+    --orange_03: #ffe8d5;
+
+    --set_bg: #f7f7f7;
+    --pop_out_bg: rgba(219 219 219 / 0.6);
+    --list_on: #f5f6ff;
+    --basic_line:1px solid var(--color_06);
+    --head_B:700 16px/16px 'pretendard';
+    --head_R:400 16px/16px 'pretendard';
+    --body_M:500 14px/14px 'pretendard';
+    --body_R:400 14px/14px 'pretendard';
+    --body_B:600 14px/14px 'pretendard';
+    --caption_R:400 13px/13px 'pretendard';
+    --placeholder_M:500 14px/14px 'pretendard';
+
+
+    --gm3-sys-color-surface-container:#fff;
+    --fc-today-bg-color:#fff;
+    
+}
+
+/*
+font: [font-style] [font-variant] [font-weight] [font-size]/[line-height] [font-family];
+*/
