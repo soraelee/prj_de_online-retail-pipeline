@@ -1,20 +1,23 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from datetime import datetime, timedelta
+import pendulum
+
+KST = pendulum.timezone("Asia/Seoul")
 
 # Default 설정
 default_args = {
     'owner': 'sorae',
     'retries': 3,
-    'retry_delay': timedelta(seconds=10),
-    'start_date': datetime(2025, 12, 1),
+    'retry_delay': timedelta(seconds=30),
+    'start_date': datetime(2025, 12, 1, tzinfo=KST),
 }
 
 with DAG(
     dag_id="setup_retail_pipeline",
     default_args=default_args,
-    # schedule='@hourly',
-    schedule=None,
+    schedule='@hourly',
+    # schedule=None,
     catchup=False,
     max_active_runs=1,
     max_active_tasks=1,
@@ -30,19 +33,19 @@ with DAG(
         WHERE invoice_no IN (
             SELECT invoice_no
             FROM order_info
-            WHERE invoice_timestamp >= '{{dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
-            AND invoice_timestamp <  '{{dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}'
+            WHERE invoice_timestamp >= '{{dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+            AND invoice_timestamp <  '{{dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
         );
 
         -- 2. order_info 삭제
         DELETE FROM order_info
-        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
-        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
 
         -- 3. raw 삭제
         DELETE FROM raw_retail_events
-        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
-        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
 
         SQL
 
@@ -54,7 +57,7 @@ with DAG(
     task_id="create_kafka_topic",
     bash_command="""
         docker exec kafka kafka-topics \
-        --bootstrap-server kafka:29092 \
+        --bootstrap-server localhost:29092 \
         --create \
         --if-not-exists \
         --topic retail-events \
@@ -73,6 +76,7 @@ with DAG(
         --master spark://spark-master:7077 \
         --executor-memory 1g \
         --executor-cores 1 \
+        --total-executor-cores 1 \
         --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1 \
         --jars /opt/spark-jars/postgresql-42.7.3.jar \
         /opt/spark-apps/stream_raw_events.py \
@@ -90,13 +94,13 @@ with DAG(
     )
 
     run_collector = BashOperator(
-        task_id="run_collector",
-#        bash_command="docker start -a collector"
-        bash_command="""
-            docker compose run --rm \
-            -e TARGET_START='{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}' \
-            -e TARGET_END='{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}' \
-            collector
+    task_id="run_collector",
+    bash_command="""
+    docker exec \
+        -e TARGET_START='{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}' \
+        -e TARGET_END='{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}' \
+        collector \
+        python /app/producer.py
         """
     )
 
@@ -106,8 +110,8 @@ with DAG(
         docker exec postgres psql -U postgres -d retail_pipeline -c "
         SELECT COUNT(*) AS interval_count
         FROM raw_retail_events
-        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.strftime("%Y-%m-%d %H:%M:%S")) }}'
-          AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.strftime("%Y-%m-%d %H:%M:%S")) }}';
+        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+          AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
         "
         """
     )

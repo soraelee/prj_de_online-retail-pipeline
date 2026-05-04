@@ -1,0 +1,21 @@
+[2026-05-03T14:00:28.892+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: setup_retail_pipeline.check_raw_count scheduled__2026-05-03T13:00:00+00:00 [queued]>
+[2026-05-03T14:00:28.896+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: setup_retail_pipeline.check_raw_count scheduled__2026-05-03T13:00:00+00:00 [queued]>
+[2026-05-03T14:00:28.896+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 4
+[2026-05-03T14:00:28.902+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): check_raw_count> on 2026-05-03 13:00:00+00:00
+[2026-05-03T14:00:28.903+0000] {standard_task_runner.py:57} INFO - Started process 5910 to run task
+[2026-05-03T14:00:28.905+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'setup_retail_pipeline', 'check_raw_count', 'scheduled__2026-05-03T13:00:00+00:00', '--job-id', '826', '--raw', '--subdir', 'DAGS_FOLDER/setup_retail_pipeline.py', '--cfg-path', '/tmp/tmpe6bc9jw1']
+[2026-05-03T14:00:28.906+0000] {standard_task_runner.py:85} INFO - Job 826: Subtask check_raw_count
+[2026-05-03T14:00:28.926+0000] {task_command.py:415} INFO - Running <TaskInstance: setup_retail_pipeline.check_raw_count scheduled__2026-05-03T13:00:00+00:00 [running]> on host 9402586a9c0f
+[2026-05-03T14:00:28.965+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='setup_retail_pipeline' AIRFLOW_CTX_TASK_ID='check_raw_count' AIRFLOW_CTX_EXECUTION_DATE='2026-05-03T13:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-03T13:00:00+00:00'
+[2026-05-03T14:00:28.966+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T14:00:28.966+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\n        docker exec *** psql -U *** -d retail_pipeline -c "\n        SELECT COUNT(*) AS interval_count\n        FROM raw_retail_events\n        WHERE invoice_timestamp >= \'2026-05-03 13:00:00\'\n          AND invoice_timestamp <  \'2026-05-03 14:00:00\';\n        "\n        ']
+[2026-05-03T14:00:28.970+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T14:00:29.062+0000] {subprocess.py:93} INFO -  interval_count
+[2026-05-03T14:00:29.063+0000] {subprocess.py:93} INFO - ----------------
+[2026-05-03T14:00:29.063+0000] {subprocess.py:93} INFO -              86
+[2026-05-03T14:00:29.063+0000] {subprocess.py:93} INFO - (1 row)
+[2026-05-03T14:00:29.064+0000] {subprocess.py:93} INFO - 
+[2026-05-03T14:00:29.066+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-03T14:00:29.079+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=setup_retail_pipeline, task_id=check_raw_count, execution_date=20260503T130000, start_date=20260503T140028, end_date=20260503T140029
+[2026-05-03T14:00:29.124+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-03T14:00:29.134+0000] {taskinstance.py:2776} INFO - 0 downstream tasks scheduled from follow-on schedule check

@@ -1,0 +1,16 @@
+[2026-05-03T14:00:03.553+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: setup_retail_pipeline.start_stream_raw_events scheduled__2026-05-03T13:00:00+00:00 [queued]>
+[2026-05-03T14:00:03.556+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: setup_retail_pipeline.start_stream_raw_events scheduled__2026-05-03T13:00:00+00:00 [queued]>
+[2026-05-03T14:00:03.556+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 4
+[2026-05-03T14:00:03.559+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): start_stream_raw_events> on 2026-05-03 13:00:00+00:00
+[2026-05-03T14:00:03.561+0000] {standard_task_runner.py:57} INFO - Started process 5858 to run task
+[2026-05-03T14:00:03.562+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'setup_retail_pipeline', 'start_stream_raw_events', 'scheduled__2026-05-03T13:00:00+00:00', '--job-id', '823', '--raw', '--subdir', 'DAGS_FOLDER/setup_retail_pipeline.py', '--cfg-path', '/tmp/tmpdtlk9lsl']
+[2026-05-03T14:00:03.563+0000] {standard_task_runner.py:85} INFO - Job 823: Subtask start_stream_raw_events
+[2026-05-03T14:00:03.579+0000] {task_command.py:415} INFO - Running <TaskInstance: setup_retail_pipeline.start_stream_raw_events scheduled__2026-05-03T13:00:00+00:00 [running]> on host 9402586a9c0f
+[2026-05-03T14:00:03.605+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='setup_retail_pipeline' AIRFLOW_CTX_TASK_ID='start_stream_raw_events' AIRFLOW_CTX_EXECUTION_DATE='2026-05-03T13:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-03T13:00:00+00:00'
+[2026-05-03T14:00:03.605+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T14:00:03.606+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', "\n        docker exec spark-master bash -lc '\n        rm -f /tmp/stream_raw_events.log\n\n        nohup /opt/bitnami/spark/bin/spark-submit         --master spark://spark-master:7077         --executor-memory 1g         --executor-cores 1         --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1         --jars /opt/spark-jars/***ql-42.7.3.jar         /opt/spark-apps/stream_raw_events.py         > /tmp/stream_raw_events.log 2>&1 &\n        '\n        "]
+[2026-05-03T14:00:03.609+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T14:00:03.670+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-03T14:00:03.683+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=setup_retail_pipeline, task_id=start_stream_raw_events, execution_date=20260503T130000, start_date=20260503T140003, end_date=20260503T140003
+[2026-05-03T14:00:03.700+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-03T14:00:03.711+0000] {taskinstance.py:2776} INFO - 1 downstream tasks scheduled from follow-on schedule check

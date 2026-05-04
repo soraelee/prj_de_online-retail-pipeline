@@ -84,8 +84,8 @@ services:
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=4
     volumes:
       - ./jobs:/opt/spark-apps
       - ./jars:/opt/spark-jars
@@ -103,6 +103,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     volumes:
       - ./:/app
+    command: ["tail", "-f", "/dev/null"]
     networks:
       - kafka-network
 
@@ -136,9 +137,10 @@ services:
     ports:
       - "8081:8080"
     volumes:
+      - ./:/opt/retail-pipeline
       - ./app/airflow/dags:/opt/airflow/dags
+      - ./app/airflow/logs:/opt/airflow/logs
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./app/airflow/dags:/opt/airflow/dags
     command: webserver
     networks:
       - kafka-network
@@ -173,10 +175,29 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
     volumes:
+      - ./:/opt/retail-pipeline
       - ./app/airflow/dags:/opt/airflow/dags
+      - ./app/airflow/logs:/opt/airflow/logs
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./app/airflow/dags:/opt/airflow/dags
     command: scheduler
+    networks:
+      - kafka-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: retail-api
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retail_pipeline
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      - postgres
     networks:
       - kafka-network
 

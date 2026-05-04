@@ -1,0 +1,116 @@
+[2026-05-04T02:14:33.099+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: retail_pipeline.build_dim manual__2026-05-04T02:09:29+00:00 [queued]>
+[2026-05-04T02:14:33.101+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: retail_pipeline.build_dim manual__2026-05-04T02:09:29+00:00 [queued]>
+[2026-05-04T02:14:33.102+0000] {taskinstance.py:1359} INFO - Starting attempt 2 of 4
+[2026-05-04T02:14:33.105+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): build_dim> on 2026-05-04 02:09:29+00:00
+[2026-05-04T02:14:33.107+0000] {standard_task_runner.py:57} INFO - Started process 385 to run task
+[2026-05-04T02:14:33.108+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'retail_pipeline', 'build_dim', 'manual__2026-05-04T02:09:29+00:00', '--job-id', '930', '--raw', '--subdir', 'DAGS_FOLDER/retail_pipeline_dag.py', '--cfg-path', '/tmp/tmpr_qfh07o']
+[2026-05-04T02:14:33.109+0000] {standard_task_runner.py:85} INFO - Job 930: Subtask build_dim
+[2026-05-04T02:14:33.126+0000] {task_command.py:415} INFO - Running <TaskInstance: retail_pipeline.build_dim manual__2026-05-04T02:09:29+00:00 [running]> on host c559f315799e
+[2026-05-04T02:14:33.151+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='retail_pipeline' AIRFLOW_CTX_TASK_ID='build_dim' AIRFLOW_CTX_EXECUTION_DATE='2026-05-04T02:09:29+00:00' AIRFLOW_CTX_TRY_NUMBER='2' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-04T02:09:29+00:00'
+[2026-05-04T02:14:33.152+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-04T02:14:33.152+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\n        docker exec spark-master bash -lc \'\n        /opt/bitnami/spark/bin/spark-submit             --master spark://spark-master:7077             --deploy-mode client             --executor-cores 1\n            --executor-memory 1g\n            --total-executor-cores 1\n            --jars /opt/spark-jars/***ql-42.7.3.jar             --driver-class-path /opt/spark-jars/***ql-42.7.3.jar             /opt/spark-apps/build_dim.py             --start "2026-05-02"             --end "2026-05-03"\n        \'\n    ']
+[2026-05-04T02:14:33.157+0000] {subprocess.py:86} INFO - Output:
+[2026-05-04T02:14:33.400+0000] {subprocess.py:93} INFO - Error: Missing application resource.
+[2026-05-04T02:14:33.400+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.800+0000] {subprocess.py:93} INFO - Usage: spark-submit [options] <app jar | python file | R file> [app arguments]
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO - Usage: spark-submit --kill [submission ID] --master [spark://...]
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO - Usage: spark-submit --status [submission ID] --master [spark://...]
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO - Usage: spark-submit run-example [options] example-class [example args]
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO - Options:
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO -   --master MASTER_URL         spark://host:port, mesos://host:port, yarn,
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO -                               k8s://https://host:port, or local (Default: local[*]).
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO -   --deploy-mode DEPLOY_MODE   Whether to launch the driver program locally ("client") or
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO -                               on one of the worker machines inside the cluster ("cluster")
+[2026-05-04T02:14:33.801+0000] {subprocess.py:93} INFO -                               (Default: client).
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --class CLASS_NAME          Your application's main class (for Java / Scala apps).
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --name NAME                 A name of your application.
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --jars JARS                 Comma-separated list of jars to include on the driver
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               and executor classpaths.
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --packages                  Comma-separated list of maven coordinates of jars to include
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               on the driver and executor classpaths. Will search the local
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               maven repo, then maven central and any additional remote
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               repositories given by --repositories. The format for the
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               coordinates should be groupId:artifactId:version.
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --exclude-packages          Comma-separated list of groupId:artifactId, to exclude while
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               resolving the dependencies provided in --packages to avoid
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -                               dependency conflicts.
+[2026-05-04T02:14:33.802+0000] {subprocess.py:93} INFO -   --repositories              Comma-separated list of additional remote repositories to
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               search for the maven coordinates given with --packages.
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --py-files PY_FILES         Comma-separated list of .zip, .egg, or .py files to place
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               on the PYTHONPATH for Python apps.
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --files FILES               Comma-separated list of files to be placed in the working
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               directory of each executor. File paths of these files
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               in executors can be accessed via SparkFiles.get(fileName).
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --archives ARCHIVES         Comma-separated list of archives to be extracted into the
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               working directory of each executor.
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --conf, -c PROP=VALUE       Arbitrary Spark configuration property.
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --properties-file FILE      Path to a file from which to load extra properties. If not
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -                               specified, this will look for conf/spark-defaults.conf.
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --driver-memory MEM         Memory for driver (e.g. 1000M, 2G) (Default: 1024M).
+[2026-05-04T02:14:33.803+0000] {subprocess.py:93} INFO -   --driver-java-options       Extra Java options to pass to the driver.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --driver-library-path       Extra library path entries to pass to the driver.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --driver-class-path         Extra class path entries to pass to the driver. Note that
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -                               jars added with --jars are automatically included in the
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -                               classpath.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --executor-memory MEM       Memory per executor (e.g. 1000M, 2G) (Default: 1G).
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --proxy-user NAME           User to impersonate when submitting the application.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -                               This argument does not work with --principal / --keytab.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --help, -h                  Show this help message and exit.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --verbose, -v               Print additional debug output.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -   --version,                  Print the version of current Spark.
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -  Spark Connect only:
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -    --remote CONNECT_URL       URL to connect to the server for Spark Connect, e.g.,
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -                               sc://host:port. --master and --deploy-mode cannot be set
+[2026-05-04T02:14:33.804+0000] {subprocess.py:93} INFO -                               together with this option. This option is experimental, and
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -                               might change between minor releases.
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -  Cluster deploy mode only:
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --driver-cores NUM          Number of cores used by the driver, only in cluster mode
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -                               (Default: 1).
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -  Spark standalone or Mesos with cluster deploy mode only:
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --supervise                 If given, restarts the driver on failure.
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -  Spark standalone, Mesos or K8s with cluster deploy mode only:
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --kill SUBMISSION_ID        If given, kills the driver specified.
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --status SUBMISSION_ID      If given, requests the status of the driver specified.
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -  Spark standalone, Mesos and Kubernetes only:
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --total-executor-cores NUM  Total cores for all executors.
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -  Spark standalone, YARN and Kubernetes only:
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -   --executor-cores NUM        Number of cores used by each executor. (Default: 1 in
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -                               YARN and K8S modes, or all available cores on the worker
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO -                               in standalone mode).
+[2026-05-04T02:14:33.805+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -  Spark on YARN and Kubernetes only:
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -   --num-executors NUM         Number of executors to launch (Default: 2).
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -                               If dynamic allocation is enabled, the initial number of
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -                               executors will be at least NUM.
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -   --principal PRINCIPAL       Principal to be used to login to KDC.
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -   --keytab KEYTAB             The full path to the file that contains the keytab for the
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -                               principal specified above.
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -  Spark on YARN only:
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO -   --queue QUEUE_NAME          The YARN queue to submit to (Default: "default").
+[2026-05-04T02:14:33.806+0000] {subprocess.py:93} INFO - 
+[2026-05-04T02:14:33.809+0000] {subprocess.py:93} INFO - bash: line 3: --executor-memory: command not found
+[2026-05-04T02:14:33.809+0000] {subprocess.py:93} INFO - bash: line 4: --total-executor-cores: command not found
+[2026-05-04T02:14:33.809+0000] {subprocess.py:93} INFO - bash: line 5: --jars: command not found
+[2026-05-04T02:14:33.813+0000] {subprocess.py:97} INFO - Command exited with return code 127
+[2026-05-04T02:14:33.819+0000] {taskinstance.py:1935} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.8/site-packages/airflow/operators/bash.py", line 210, in execute
+    raise AirflowException(
+airflow.exceptions.AirflowException: Bash command failed. The command returned a non-zero exit code 127.
+[2026-05-04T02:14:33.821+0000] {taskinstance.py:1398} INFO - Marking task as UP_FOR_RETRY. dag_id=retail_pipeline, task_id=build_dim, execution_date=20260504T020929, start_date=20260504T021433, end_date=20260504T021433
+[2026-05-04T02:14:33.826+0000] {standard_task_runner.py:104} ERROR - Failed to execute job 930 for task build_dim (Bash command failed. The command returned a non-zero exit code 127.; 385)
+[2026-05-04T02:14:33.864+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 1
+[2026-05-04T02:14:33.874+0000] {taskinstance.py:2776} INFO - 0 downstream tasks scheduled from follow-on schedule check

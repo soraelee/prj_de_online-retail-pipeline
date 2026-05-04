@@ -1,0 +1,57 @@
+[2026-05-04T06:11:21.245+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: backfill_retail_pipeline.build_dim manual__2026-05-04T04:54:24+00:00 [queued]>
+[2026-05-04T06:11:21.247+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: backfill_retail_pipeline.build_dim manual__2026-05-04T04:54:24+00:00 [queued]>
+[2026-05-04T06:11:21.248+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 2
+[2026-05-04T06:11:21.251+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): build_dim> on 2026-05-04 04:54:24+00:00
+[2026-05-04T06:11:21.253+0000] {standard_task_runner.py:57} INFO - Started process 6590 to run task
+[2026-05-04T06:11:21.254+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'backfill_retail_pipeline', 'build_dim', 'manual__2026-05-04T04:54:24+00:00', '--job-id', '962', '--raw', '--subdir', 'DAGS_FOLDER/backfill_retail_pipeline.py', '--cfg-path', '/tmp/tmpndlcgcjh']
+[2026-05-04T06:11:21.255+0000] {standard_task_runner.py:85} INFO - Job 962: Subtask build_dim
+[2026-05-04T06:11:21.271+0000] {task_command.py:415} INFO - Running <TaskInstance: backfill_retail_pipeline.build_dim manual__2026-05-04T04:54:24+00:00 [running]> on host c559f315799e
+[2026-05-04T06:11:21.296+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='backfill_retail_pipeline' AIRFLOW_CTX_TASK_ID='build_dim' AIRFLOW_CTX_EXECUTION_DATE='2026-05-04T04:54:24+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-04T04:54:24+00:00'
+[2026-05-04T06:11:21.297+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-04T06:11:21.297+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\n            docker exec spark-master bash -lc \'\n            /opt/bitnami/spark/bin/spark-submit                 --master spark://spark-master:7077                 --deploy-mode client                 --executor-cores 1                 --executor-memory 1g                 --total-executor-cores 1                 --jars /opt/spark-jars/***ql-42.7.3.jar                 --driver-class-path /opt/spark-jars/***ql-42.7.3.jar                 /opt/spark-apps/build_dim.py                 --start "2025-12-01 00:00:00"                 --end "2025-12-31 00:00:00"\n            \'\n        ']
+[2026-05-04T06:11:21.300+0000] {subprocess.py:86} INFO - Output:
+[2026-05-04T06:11:22.383+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[2026-05-04T06:11:22.853+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SparkContext: Running Spark version 3.4.1
+[2026-05-04T06:11:22.864+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceUtils: ==============================================================
+[2026-05-04T06:11:22.864+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceUtils: No custom resources configured for spark.driver.
+[2026-05-04T06:11:22.864+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceUtils: ==============================================================
+[2026-05-04T06:11:22.864+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SparkContext: Submitted application: build_dim
+[2026-05-04T06:11:22.874+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+[2026-05-04T06:11:22.877+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceProfile: Limiting resource is cpus at 1 tasks per executor
+[2026-05-04T06:11:22.878+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO ResourceProfileManager: Added ResourceProfile id: 0
+[2026-05-04T06:11:22.906+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SecurityManager: Changing view acls to: spark
+[2026-05-04T06:11:22.907+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SecurityManager: Changing modify acls to: spark
+[2026-05-04T06:11:22.907+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SecurityManager: Changing view acls groups to:
+[2026-05-04T06:11:22.908+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SecurityManager: Changing modify acls groups to:
+[2026-05-04T06:11:22.908+0000] {subprocess.py:93} INFO - 26/05/04 06:11:22 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+[2026-05-04T06:11:23.010+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO Utils: Successfully started service 'sparkDriver' on port 43453.
+[2026-05-04T06:11:23.027+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO SparkEnv: Registering MapOutputTracker
+[2026-05-04T06:11:23.042+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO SparkEnv: Registering BlockManagerMaster
+[2026-05-04T06:11:23.055+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+[2026-05-04T06:11:23.056+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+[2026-05-04T06:11:23.058+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+[2026-05-04T06:11:23.077+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-3e3bce5e-aeff-489c-b1ec-3d6e62353762
+[2026-05-04T06:11:23.085+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO MemoryStore: MemoryStore started with capacity 434.4 MiB
+[2026-05-04T06:11:23.093+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO SparkEnv: Registering OutputCommitCoordinator
+[2026-05-04T06:11:23.163+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+[2026-05-04T06:11:23.195+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+[2026-05-04T06:11:23.214+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO SparkContext: Added JAR file:///opt/spark-jars/***ql-42.7.3.jar at spark://c1e8499a63e2:43453/jars/***ql-42.7.3.jar with timestamp 1777875082849
+[2026-05-04T06:11:23.256+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneAppClient$ClientEndpoint: Connecting to master spark://spark-master:7077...
+[2026-05-04T06:11:23.280+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO TransportClientFactory: Successfully created connection to spark-master/172.18.0.4:7077 after 13 ms (0 ms spent in bootstraps)
+[2026-05-04T06:11:23.330+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneSchedulerBackend: Connected to Spark cluster with app ID app-20260504061123-0005
+[2026-05-04T06:11:23.333+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 33259.
+[2026-05-04T06:11:23.334+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO NettyBlockTransferService: Server created on c1e8499a63e2:33259
+[2026-05-04T06:11:23.334+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneAppClient$ClientEndpoint: Executor added: app-20260504061123-0005/0 on worker-20260504020915-172.18.0.7-41333 (172.18.0.7:41333) with 1 core(s)
+[2026-05-04T06:11:23.335+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+[2026-05-04T06:11:23.336+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneSchedulerBackend: Granted executor ID app-20260504061123-0005/0 on hostPort 172.18.0.7:41333 with 1 core(s), 1024.0 MiB RAM
+[2026-05-04T06:11:23.339+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, c1e8499a63e2, 33259, None)
+[2026-05-04T06:11:23.340+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManagerMasterEndpoint: Registering block manager c1e8499a63e2:33259 with 434.4 MiB RAM, BlockManagerId(driver, c1e8499a63e2, 33259, None)
+[2026-05-04T06:11:23.342+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, c1e8499a63e2, 33259, None)
+[2026-05-04T06:11:23.342+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, c1e8499a63e2, 33259, None)
+[2026-05-04T06:11:23.407+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneAppClient$ClientEndpoint: Executor updated: app-20260504061123-0005/0 is now RUNNING
+[2026-05-04T06:11:23.449+0000] {subprocess.py:93} INFO - 26/05/04 06:11:23 INFO StandaloneSchedulerBackend: SchedulerBackend is ready for scheduling beginning after reached minRegisteredResourcesRatio: 0.0
+[2026-05-04T06:11:29.468+0000] {subprocess.py:93} INFO - dim_customer, dim_product 생성 완료
+[2026-05-04T06:11:29.676+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-04T06:11:29.736+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=backfill_retail_pipeline, task_id=build_dim, execution_date=20260504T045424, start_date=20260504T061121, end_date=20260504T061129
+[2026-05-04T06:11:29.792+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-04T06:11:29.817+0000] {taskinstance.py:2776} INFO - 1 downstream tasks scheduled from follow-on schedule check

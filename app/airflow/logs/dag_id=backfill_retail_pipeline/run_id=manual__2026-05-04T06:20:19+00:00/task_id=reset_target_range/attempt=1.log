@@ -1,0 +1,16 @@
+[2026-05-04T06:20:21.405+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: backfill_retail_pipeline.reset_target_range manual__2026-05-04T06:20:19+00:00 [queued]>
+[2026-05-04T06:20:21.407+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: backfill_retail_pipeline.reset_target_range manual__2026-05-04T06:20:19+00:00 [queued]>
+[2026-05-04T06:20:21.407+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 2
+[2026-05-04T06:20:21.411+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): reset_target_range> on 2026-05-04 06:20:19+00:00
+[2026-05-04T06:20:21.413+0000] {standard_task_runner.py:57} INFO - Started process 6909 to run task
+[2026-05-04T06:20:21.414+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'backfill_retail_pipeline', 'reset_target_range', 'manual__2026-05-04T06:20:19+00:00', '--job-id', '966', '--raw', '--subdir', 'DAGS_FOLDER/backfill_retail_pipeline.py', '--cfg-path', '/tmp/tmpx74e_8_g']
+[2026-05-04T06:20:21.415+0000] {standard_task_runner.py:85} INFO - Job 966: Subtask reset_target_range
+[2026-05-04T06:20:21.433+0000] {task_command.py:415} INFO - Running <TaskInstance: backfill_retail_pipeline.reset_target_range manual__2026-05-04T06:20:19+00:00 [running]> on host c559f315799e
+[2026-05-04T06:20:21.465+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='backfill_retail_pipeline' AIRFLOW_CTX_TASK_ID='reset_target_range' AIRFLOW_CTX_EXECUTION_DATE='2026-05-04T06:20:19+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-04T06:20:19+00:00'
+[2026-05-04T06:20:21.465+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-04T06:20:21.466+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', "\ndocker exec *** psql -v ON_ERROR_STOP=1 -U *** -d retail_pipeline <<'SQL'\nDELETE FROM order_detail\nWHERE invoice_no IN (\n    SELECT invoice_no\n    FROM order_info\n    WHERE invoice_timestamp >= '2025-12-24 00:00:00'\n      AND invoice_timestamp <  '2025-12-31 00:00:00'\n);\n\nDELETE FROM order_info\nWHERE invoice_timestamp >= '2025-12-24 00:00:00'\n  AND invoice_timestamp <  '2025-12-31 00:00:00';\n\nDELETE FROM raw_retail_events\nWHERE invoice_timestamp >= '2025-12-24 00:00:00'\n  AND invoice_timestamp <  '2025-12-31 00:00:00';\nSQL"]
+[2026-05-04T06:20:21.470+0000] {subprocess.py:86} INFO - Output:
+[2026-05-04T06:20:21.533+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-04T06:20:21.545+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=backfill_retail_pipeline, task_id=reset_target_range, execution_date=20260504T062019, start_date=20260504T062021, end_date=20260504T062021
+[2026-05-04T06:20:21.553+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-04T06:20:21.565+0000] {taskinstance.py:2776} INFO - 1 downstream tasks scheduled from follow-on schedule check

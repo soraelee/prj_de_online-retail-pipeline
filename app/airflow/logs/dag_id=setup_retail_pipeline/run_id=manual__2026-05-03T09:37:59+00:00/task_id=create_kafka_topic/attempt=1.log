@@ -1,0 +1,17 @@
+[2026-05-03T09:38:01.136+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: setup_retail_pipeline.create_kafka_topic manual__2026-05-03T09:37:59+00:00 [queued]>
+[2026-05-03T09:38:01.138+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: setup_retail_pipeline.create_kafka_topic manual__2026-05-03T09:37:59+00:00 [queued]>
+[2026-05-03T09:38:01.138+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 4
+[2026-05-03T09:38:01.142+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): create_kafka_topic> on 2026-05-03 09:37:59+00:00
+[2026-05-03T09:38:01.143+0000] {standard_task_runner.py:57} INFO - Started process 193 to run task
+[2026-05-03T09:38:01.144+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'setup_retail_pipeline', 'create_kafka_topic', 'manual__2026-05-03T09:37:59+00:00', '--job-id', '787', '--raw', '--subdir', 'DAGS_FOLDER/setup_retail_pipeline.py', '--cfg-path', '/tmp/tmp3mhdmopc']
+[2026-05-03T09:38:01.145+0000] {standard_task_runner.py:85} INFO - Job 787: Subtask create_kafka_topic
+[2026-05-03T09:38:01.161+0000] {task_command.py:415} INFO - Running <TaskInstance: setup_retail_pipeline.create_kafka_topic manual__2026-05-03T09:37:59+00:00 [running]> on host 9402586a9c0f
+[2026-05-03T09:38:01.187+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='setup_retail_pipeline' AIRFLOW_CTX_TASK_ID='create_kafka_topic' AIRFLOW_CTX_EXECUTION_DATE='2026-05-03T09:37:59+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-03T09:37:59+00:00'
+[2026-05-03T09:38:01.187+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T09:38:01.187+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\n        docker exec kafka kafka-topics         --bootstrap-server localhost:29092         --create         --if-not-exists         --topic retail-events         --partitions 1         --replication-factor 1\n        ']
+[2026-05-03T09:38:01.190+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T09:38:01.849+0000] {subprocess.py:93} INFO - Created topic retail-events.
+[2026-05-03T09:38:02.223+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-03T09:38:02.234+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=setup_retail_pipeline, task_id=create_kafka_topic, execution_date=20260503T093759, start_date=20260503T093801, end_date=20260503T093802
+[2026-05-03T09:38:02.266+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-03T09:38:02.277+0000] {taskinstance.py:2776} INFO - 1 downstream tasks scheduled from follow-on schedule check

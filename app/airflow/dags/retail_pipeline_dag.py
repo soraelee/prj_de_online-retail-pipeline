@@ -8,13 +8,16 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
+import pendulum
+
+KST = pendulum.timezone("Asia/Seoul")
 
 # Default 설정
 default_args = {
     'owner': 'sorae',
     'retries': 3,
     'retry_delay': timedelta(minutes=5),
-    'start_date': datetime(2025, 12, 1),
+    'start_date': datetime(2025, 12, 1, tzinfo=KST),
 }
 
 dag = DAG(
@@ -95,28 +98,42 @@ reset_tables = BashOperator(
 
 # Task: dim 생성 (dim_customer, dim_product)
 build_dim = BashOperator(
-    task_id='build_dim',
+    task_id="build_dim",
     bash_command=f"""
-        spark-submit \
+        docker exec spark-master bash -lc '
+        /opt/bitnami/spark/bin/spark-submit \
             --master {SPARK_MASTER} \
             --deploy-mode client \
+            --executor-cores 1
+            --executor-memory 1g
+            --total-executor-cores 1
+            --jars /opt/spark-jars/postgresql-42.7.3.jar \
+            --driver-class-path /opt/spark-jars/postgresql-42.7.3.jar \
             /opt/spark-apps/build_dim.py \
-            --start '{{{{ data_interval_start.strftime("%Y-%m-%d") }}}}' \
-            --end '{{{{ data_interval_end.strftime("%Y-%m-%d") }}}}'
+            --start "{{{{ data_interval_start.strftime("%Y-%m-%d") }}}}" \
+            --end "{{{{ data_interval_end.strftime("%Y-%m-%d") }}}}"
+        '
     """,
     dag=dag,
 )
 
 # Task: mart 생성 (mart_daily_orders, mart_product_sales)
 build_mart = BashOperator(
-    task_id='build_mart',
+    task_id="build_mart",
     bash_command=f"""
-        spark-submit \
+        docker exec spark-master bash -lc '
+        /opt/bitnami/spark/bin/spark-submit \
             --master {SPARK_MASTER} \
             --deploy-mode client \
+            --executor-cores 1
+            --executor-memory 1g
+            --total-executor-cores 1
+            --jars /opt/spark-jars/postgresql-42.7.3.jar \
+            --driver-class-path /opt/spark-jars/postgresql-42.7.3.jar \
             /opt/spark-apps/build_mart.py \
-            --start '{{{{ data_interval_start.strftime("%Y-%m-%d") }}}}' \
-            --end '{{{{ data_interval_end.strftime("%Y-%m-%d") }}}}'
+            --start "{{{{ data_interval_start.strftime("%Y-%m-%d") }}}}" \
+            --end "{{{{ data_interval_end.strftime("%Y-%m-%d") }}}}"
+        '
     """,
     dag=dag,
     depends_on_past=False,

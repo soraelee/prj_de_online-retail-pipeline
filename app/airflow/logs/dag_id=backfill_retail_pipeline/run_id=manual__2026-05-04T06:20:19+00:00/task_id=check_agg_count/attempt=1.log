@@ -1,0 +1,25 @@
+[2026-05-04T06:20:43.353+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: backfill_retail_pipeline.check_agg_count manual__2026-05-04T06:20:19+00:00 [queued]>
+[2026-05-04T06:20:43.356+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: backfill_retail_pipeline.check_agg_count manual__2026-05-04T06:20:19+00:00 [queued]>
+[2026-05-04T06:20:43.356+0000] {taskinstance.py:1359} INFO - Starting attempt 1 of 2
+[2026-05-04T06:20:43.359+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): check_agg_count> on 2026-05-04 06:20:19+00:00
+[2026-05-04T06:20:43.361+0000] {standard_task_runner.py:57} INFO - Started process 6992 to run task
+[2026-05-04T06:20:43.362+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'backfill_retail_pipeline', 'check_agg_count', 'manual__2026-05-04T06:20:19+00:00', '--job-id', '972', '--raw', '--subdir', 'DAGS_FOLDER/backfill_retail_pipeline.py', '--cfg-path', '/tmp/tmpb6_99p97']
+[2026-05-04T06:20:43.364+0000] {standard_task_runner.py:85} INFO - Job 972: Subtask check_agg_count
+[2026-05-04T06:20:43.381+0000] {task_command.py:415} INFO - Running <TaskInstance: backfill_retail_pipeline.check_agg_count manual__2026-05-04T06:20:19+00:00 [running]> on host c559f315799e
+[2026-05-04T06:20:43.410+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='backfill_retail_pipeline' AIRFLOW_CTX_TASK_ID='check_agg_count' AIRFLOW_CTX_EXECUTION_DATE='2026-05-04T06:20:19+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-04T06:20:19+00:00'
+[2026-05-04T06:20:43.411+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-04T06:20:43.411+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\ndocker exec *** psql -U *** -d retail_pipeline -c "\nSELECT \'2025-12-24 00:00:00\' AS order_date, table_name, row_count\nFROM (               \n    SELECT \'dim_customer\' AS table_name, COUNT(*) AS row_count\n    FROM dim_customer\n\n    UNION ALL\n\n    SELECT \'dim_product\' AS table_name, COUNT(*) AS row_count\n    FROM dim_product\n\n    UNION ALL\n\n    SELECT \'mart_daily_orders\' AS table_name, COUNT(*) AS row_count\n    FROM mart_daily_orders\n    WHERE order_date >= \'2025-12-24\'\n    AND order_date <  \'2025-12-31\'\n\n    UNION ALL\n\n    SELECT \'mart_product_sales\' AS table_name, COUNT(*) AS row_count\n    FROM mart_product_sales\n    WHERE order_date >= \'2025-12-24\'\n    AND order_date <  \'2025-12-31\'\n\n    UNION ALL\n\n    SELECT \'mart_customer_repeat\' AS table_name, COUNT(*) AS row_count\n    FROM mart_customer_repeat\n    WHERE order_date >= \'2025-12-24\'\n    AND order_date <  \'2025-12-31\'\n) AS counts;\n"']
+[2026-05-04T06:20:43.414+0000] {subprocess.py:86} INFO - Output:
+[2026-05-04T06:20:43.496+0000] {subprocess.py:93} INFO -      order_date      |      table_name      | row_count
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO - ---------------------+----------------------+-----------
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO -  2025-12-24 00:00:00 | dim_customer         |      7212
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO -  2025-12-24 00:00:00 | dim_product          |      8442
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO -  2025-12-24 00:00:00 | mart_daily_orders    |         0
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO -  2025-12-24 00:00:00 | mart_product_sales   |         0
+[2026-05-04T06:20:43.497+0000] {subprocess.py:93} INFO -  2025-12-24 00:00:00 | mart_customer_repeat |         0
+[2026-05-04T06:20:43.498+0000] {subprocess.py:93} INFO - (5 rows)
+[2026-05-04T06:20:43.498+0000] {subprocess.py:93} INFO - 
+[2026-05-04T06:20:43.499+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-04T06:20:43.510+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=backfill_retail_pipeline, task_id=check_agg_count, execution_date=20260504T062019, start_date=20260504T062043, end_date=20260504T062043
+[2026-05-04T06:20:43.541+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-04T06:20:43.549+0000] {taskinstance.py:2776} INFO - 0 downstream tasks scheduled from follow-on schedule check

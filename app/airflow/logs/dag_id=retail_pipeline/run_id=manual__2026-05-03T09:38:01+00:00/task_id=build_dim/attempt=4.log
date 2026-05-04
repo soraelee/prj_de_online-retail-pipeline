@@ -1,0 +1,23 @@
+[2026-05-03T09:53:05.992+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: retail_pipeline.build_dim manual__2026-05-03T09:38:01+00:00 [queued]>
+[2026-05-03T09:53:05.995+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: retail_pipeline.build_dim manual__2026-05-03T09:38:01+00:00 [queued]>
+[2026-05-03T09:53:05.995+0000] {taskinstance.py:1359} INFO - Starting attempt 4 of 4
+[2026-05-03T09:53:05.998+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): build_dim> on 2026-05-03 09:38:01+00:00
+[2026-05-03T09:53:06.000+0000] {standard_task_runner.py:57} INFO - Started process 606 to run task
+[2026-05-03T09:53:06.002+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'retail_pipeline', 'build_dim', 'manual__2026-05-03T09:38:01+00:00', '--job-id', '796', '--raw', '--subdir', 'DAGS_FOLDER/retail_pipeline_dag.py', '--cfg-path', '/tmp/tmp25gjw9fb']
+[2026-05-03T09:53:06.003+0000] {standard_task_runner.py:85} INFO - Job 796: Subtask build_dim
+[2026-05-03T09:53:06.026+0000] {task_command.py:415} INFO - Running <TaskInstance: retail_pipeline.build_dim manual__2026-05-03T09:38:01+00:00 [running]> on host 9402586a9c0f
+[2026-05-03T09:53:06.052+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='retail_pipeline' AIRFLOW_CTX_TASK_ID='build_dim' AIRFLOW_CTX_EXECUTION_DATE='2026-05-03T09:38:01+00:00' AIRFLOW_CTX_TRY_NUMBER='4' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-05-03T09:38:01+00:00'
+[2026-05-03T09:53:06.053+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T09:53:06.053+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', "\n        spark-submit             --master spark://spark-master:7077             --deploy-mode client             /opt/spark-apps/build_dim.py             --start '2026-05-02'             --end '2026-05-03'\n    "]
+[2026-05-03T09:53:06.057+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T09:53:06.105+0000] {subprocess.py:93} INFO - JAVA_HOME is not set
+[2026-05-03T09:53:06.105+0000] {subprocess.py:97} INFO - Command exited with return code 1
+[2026-05-03T09:53:06.110+0000] {taskinstance.py:1935} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.8/site-packages/airflow/operators/bash.py", line 210, in execute
+    raise AirflowException(
+airflow.exceptions.AirflowException: Bash command failed. The command returned a non-zero exit code 1.
+[2026-05-03T09:53:06.111+0000] {taskinstance.py:1398} INFO - Marking task as FAILED. dag_id=retail_pipeline, task_id=build_dim, execution_date=20260503T093801, start_date=20260503T095305, end_date=20260503T095306
+[2026-05-03T09:53:06.115+0000] {standard_task_runner.py:104} ERROR - Failed to execute job 796 for task build_dim (Bash command failed. The command returned a non-zero exit code 1.; 606)
+[2026-05-03T09:53:06.142+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 1
+[2026-05-03T09:53:06.150+0000] {taskinstance.py:2776} INFO - 0 downstream tasks scheduled from follow-on schedule check

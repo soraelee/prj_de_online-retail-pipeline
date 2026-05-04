@@ -1,0 +1,26 @@
+[2026-05-03T09:17:12.290+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: setup_retail_pipeline.run_collector scheduled__2026-05-03T08:00:00+00:00 [queued]>
+[2026-05-03T09:17:12.293+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: setup_retail_pipeline.run_collector scheduled__2026-05-03T08:00:00+00:00 [queued]>
+[2026-05-03T09:17:12.293+0000] {taskinstance.py:1359} INFO - Starting attempt 3 of 4
+[2026-05-03T09:17:12.296+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): run_collector> on 2026-05-03 08:00:00+00:00
+[2026-05-03T09:17:12.298+0000] {standard_task_runner.py:57} INFO - Started process 291 to run task
+[2026-05-03T09:17:12.299+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'setup_retail_pipeline', 'run_collector', 'scheduled__2026-05-03T08:00:00+00:00', '--job-id', '782', '--raw', '--subdir', 'DAGS_FOLDER/setup_retail_pipeline.py', '--cfg-path', '/tmp/tmpll6qz1_d']
+[2026-05-03T09:17:12.300+0000] {standard_task_runner.py:85} INFO - Job 782: Subtask run_collector
+[2026-05-03T09:17:12.317+0000] {task_command.py:415} INFO - Running <TaskInstance: setup_retail_pipeline.run_collector scheduled__2026-05-03T08:00:00+00:00 [running]> on host dbd21663b33d
+[2026-05-03T09:17:12.348+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='setup_retail_pipeline' AIRFLOW_CTX_TASK_ID='run_collector' AIRFLOW_CTX_EXECUTION_DATE='2026-05-03T08:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-03T08:00:00+00:00'
+[2026-05-03T09:17:12.349+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T09:17:12.349+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', "\n            cd /opt/retail-pipeline && docker-compose run --rm --no-deps             -e TARGET_START='2026-05-03 08:00:00'             -e TARGET_END='2026-05-03 09:00:00'             collector\n        "]
+[2026-05-03T09:17:12.352+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T09:17:12.459+0000] {subprocess.py:93} INFO - Error response from daemon: mounts denied:
+[2026-05-03T09:17:12.460+0000] {subprocess.py:93} INFO - The path /opt/retail-pipeline is not shared from the host and is not known to Docker.
+[2026-05-03T09:17:12.460+0000] {subprocess.py:93} INFO - You can configure shared paths from Docker -> Preferences... -> Resources -> File Sharing.
+[2026-05-03T09:17:12.460+0000] {subprocess.py:93} INFO - See https://docs.docker.com/go/mac-file-sharing/ for more info.
+[2026-05-03T09:17:12.461+0000] {subprocess.py:97} INFO - Command exited with return code 1
+[2026-05-03T09:17:12.471+0000] {taskinstance.py:1935} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.8/site-packages/airflow/operators/bash.py", line 210, in execute
+    raise AirflowException(
+airflow.exceptions.AirflowException: Bash command failed. The command returned a non-zero exit code 1.
+[2026-05-03T09:17:12.473+0000] {taskinstance.py:1398} INFO - Marking task as UP_FOR_RETRY. dag_id=setup_retail_pipeline, task_id=run_collector, execution_date=20260503T080000, start_date=20260503T091712, end_date=20260503T091712
+[2026-05-03T09:17:12.479+0000] {standard_task_runner.py:104} ERROR - Failed to execute job 782 for task run_collector (Bash command failed. The command returned a non-zero exit code 1.; 291)
+[2026-05-03T09:17:12.520+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 1
+[2026-05-03T09:17:12.529+0000] {taskinstance.py:2776} INFO - 0 downstream tasks scheduled from follow-on schedule check

@@ -1,0 +1,84 @@
+[2026-05-03T15:45:09.564+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: retail_pipeline.build_dim scheduled__2026-05-02T15:30:00+00:00 [queued]>
+[2026-05-03T15:45:09.567+0000] {taskinstance.py:1157} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: retail_pipeline.build_dim scheduled__2026-05-02T15:30:00+00:00 [queued]>
+[2026-05-03T15:45:09.568+0000] {taskinstance.py:1359} INFO - Starting attempt 4 of 4
+[2026-05-03T15:45:09.573+0000] {taskinstance.py:1380} INFO - Executing <Task(BashOperator): build_dim> on 2026-05-02 15:30:00+00:00
+[2026-05-03T15:45:09.576+0000] {standard_task_runner.py:57} INFO - Started process 8153 to run task
+[2026-05-03T15:45:09.578+0000] {standard_task_runner.py:84} INFO - Running: ['airflow', 'tasks', 'run', 'retail_pipeline', 'build_dim', 'scheduled__2026-05-02T15:30:00+00:00', '--job-id', '837', '--raw', '--subdir', 'DAGS_FOLDER/retail_pipeline_dag.py', '--cfg-path', '/tmp/tmppuwfh_hr']
+[2026-05-03T15:45:09.580+0000] {standard_task_runner.py:85} INFO - Job 837: Subtask build_dim
+[2026-05-03T15:45:09.614+0000] {task_command.py:415} INFO - Running <TaskInstance: retail_pipeline.build_dim scheduled__2026-05-02T15:30:00+00:00 [running]> on host 9402586a9c0f
+[2026-05-03T15:45:09.655+0000] {taskinstance.py:1660} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='sorae' AIRFLOW_CTX_DAG_ID='retail_pipeline' AIRFLOW_CTX_TASK_ID='build_dim' AIRFLOW_CTX_EXECUTION_DATE='2026-05-02T15:30:00+00:00' AIRFLOW_CTX_TRY_NUMBER='4' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-02T15:30:00+00:00'
+[2026-05-03T15:45:09.660+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-05-03T15:45:09.661+0000] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', '\n        docker exec spark-master bash -lc \'\n        /opt/bitnami/spark/bin/spark-submit             --master spark://spark-master:7077             --deploy-mode client             --jars /opt/spark-jars/***ql-42.7.3.jar             --driver-class-path /opt/spark-jars/***ql-42.7.3.jar             /opt/spark-apps/build_dim.py             --start "2026-05-02"             --end "2026-05-03"\n        \'\n    ']
+[2026-05-03T15:45:09.666+0000] {subprocess.py:86} INFO - Output:
+[2026-05-03T15:45:10.775+0000] {subprocess.py:93} INFO - 26/05/03 15:45:10 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[2026-05-03T15:45:11.267+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkContext: Running Spark version 3.4.1
+[2026-05-03T15:45:11.277+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceUtils: ==============================================================
+[2026-05-03T15:45:11.278+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceUtils: No custom resources configured for spark.driver.
+[2026-05-03T15:45:11.278+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceUtils: ==============================================================
+[2026-05-03T15:45:11.278+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkContext: Submitted application: build_dim
+[2026-05-03T15:45:11.286+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+[2026-05-03T15:45:11.289+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceProfile: Limiting resource is cpu
+[2026-05-03T15:45:11.289+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO ResourceProfileManager: Added ResourceProfile id: 0
+[2026-05-03T15:45:11.311+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SecurityManager: Changing view acls to: spark
+[2026-05-03T15:45:11.311+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SecurityManager: Changing modify acls to: spark
+[2026-05-03T15:45:11.312+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SecurityManager: Changing view acls groups to:
+[2026-05-03T15:45:11.312+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SecurityManager: Changing modify acls groups to:
+[2026-05-03T15:45:11.312+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+[2026-05-03T15:45:11.393+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO Utils: Successfully started service 'sparkDriver' on port 41379.
+[2026-05-03T15:45:11.406+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkEnv: Registering MapOutputTracker
+[2026-05-03T15:45:11.419+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkEnv: Registering BlockManagerMaster
+[2026-05-03T15:45:11.426+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+[2026-05-03T15:45:11.427+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+[2026-05-03T15:45:11.429+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+[2026-05-03T15:45:11.441+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-4bf371ab-dad6-4164-afcf-bee363798685
+[2026-05-03T15:45:11.447+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO MemoryStore: MemoryStore started with capacity 434.4 MiB
+[2026-05-03T15:45:11.453+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkEnv: Registering OutputCommitCoordinator
+[2026-05-03T15:45:11.509+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+[2026-05-03T15:45:11.533+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 WARN Utils: Service 'SparkUI' could not bind on port 4040. Attempting port 4041.
+[2026-05-03T15:45:11.533+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 WARN Utils: Service 'SparkUI' could not bind on port 4041. Attempting port 4042.
+[2026-05-03T15:45:11.536+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO Utils: Successfully started service 'SparkUI' on port 4042.
+[2026-05-03T15:45:11.551+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO SparkContext: Added JAR file:///opt/spark-jars/***ql-42.7.3.jar at spark://c7793fecf0f4:41379/jars/***ql-42.7.3.jar with timestamp 1777823111263
+[2026-05-03T15:45:11.584+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO StandaloneAppClient$ClientEndpoint: Connecting to master spark://spark-master:7077...
+[2026-05-03T15:45:11.608+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO TransportClientFactory: Successfully created connection to spark-master/172.18.0.3:7077 after 14 ms (0 ms spent in bootstraps)
+[2026-05-03T15:45:11.662+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO StandaloneSchedulerBackend: Connected to Spark cluster with app ID app-20260503154511-0008
+[2026-05-03T15:45:11.664+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 45555.
+[2026-05-03T15:45:11.666+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO NettyBlockTransferService: Server created on c7793fecf0f4:45555
+[2026-05-03T15:45:11.667+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+[2026-05-03T15:45:11.669+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, c7793fecf0f4, 45555, None)
+[2026-05-03T15:45:11.671+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManagerMasterEndpoint: Registering block manager c7793fecf0f4:45555 with 434.4 MiB RAM, BlockManagerId(driver, c7793fecf0f4, 45555, None)
+[2026-05-03T15:45:11.672+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, c7793fecf0f4, 45555, None)
+[2026-05-03T15:45:11.672+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, c7793fecf0f4, 45555, None)
+[2026-05-03T15:45:11.797+0000] {subprocess.py:93} INFO - 26/05/03 15:45:11 INFO StandaloneSchedulerBackend: SchedulerBackend is ready for scheduling beginning after reached minRegisteredResourcesRatio: 0.0
+[2026-05-03T15:45:28.485+0000] {subprocess.py:93} INFO - 26/05/03 15:45:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:45:43.476+0000] {subprocess.py:93} INFO - 26/05/03 15:45:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:45:58.471+0000] {subprocess.py:93} INFO - 26/05/03 15:45:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:46:13.473+0000] {subprocess.py:93} INFO - 26/05/03 15:46:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:46:28.469+0000] {subprocess.py:93} INFO - 26/05/03 15:46:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:46:43.470+0000] {subprocess.py:93} INFO - 26/05/03 15:46:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:46:58.472+0000] {subprocess.py:93} INFO - 26/05/03 15:46:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:47:13.473+0000] {subprocess.py:93} INFO - 26/05/03 15:47:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:47:28.469+0000] {subprocess.py:93} INFO - 26/05/03 15:47:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:47:43.476+0000] {subprocess.py:93} INFO - 26/05/03 15:47:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:47:58.474+0000] {subprocess.py:93} INFO - 26/05/03 15:47:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:48:13.470+0000] {subprocess.py:93} INFO - 26/05/03 15:48:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:48:28.472+0000] {subprocess.py:93} INFO - 26/05/03 15:48:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:48:43.477+0000] {subprocess.py:93} INFO - 26/05/03 15:48:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:48:58.475+0000] {subprocess.py:93} INFO - 26/05/03 15:48:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:49:13.470+0000] {subprocess.py:93} INFO - 26/05/03 15:49:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:49:28.471+0000] {subprocess.py:93} INFO - 26/05/03 15:49:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:49:43.495+0000] {subprocess.py:93} INFO - 26/05/03 15:49:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:49:58.472+0000] {subprocess.py:93} INFO - 26/05/03 15:49:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:50:13.476+0000] {subprocess.py:93} INFO - 26/05/03 15:50:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:50:28.474+0000] {subprocess.py:93} INFO - 26/05/03 15:50:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:50:43.475+0000] {subprocess.py:93} INFO - 26/05/03 15:50:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:50:58.474+0000] {subprocess.py:93} INFO - 26/05/03 15:50:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:51:13.474+0000] {subprocess.py:93} INFO - 26/05/03 15:51:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:51:28.471+0000] {subprocess.py:93} INFO - 26/05/03 15:51:28 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:51:43.475+0000] {subprocess.py:93} INFO - 26/05/03 15:51:43 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:51:58.478+0000] {subprocess.py:93} INFO - 26/05/03 15:51:58 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:52:13.475+0000] {subprocess.py:93} INFO - 26/05/03 15:52:13 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[2026-05-03T15:52:28.161+0000] {subprocess.py:93} INFO - dim_customer, dim_product 생성 완료
+[2026-05-03T15:52:28.602+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-05-03T15:52:28.643+0000] {taskinstance.py:1398} INFO - Marking task as SUCCESS. dag_id=retail_pipeline, task_id=build_dim, execution_date=20260502T153000, start_date=20260503T154509, end_date=20260503T155228
+[2026-05-03T15:52:28.665+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2026-05-03T15:52:28.700+0000] {taskinstance.py:2776} INFO - 1 downstream tasks scheduled from follow-on schedule check

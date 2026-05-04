@@ -3,9 +3,20 @@ FROM apache/airflow:2.7.1
 USER root
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends docker.io && \
+    apt-get install -y --no-install-recommends docker.io  curl ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Docker Compose v2 plugin 설치
+RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
+    ARCH="$(uname -m)" && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then ARCH="aarch64"; \
+    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
+    curl -SL "https://github.com/docker/compose/releases/download/v2.27.1/docker-compose-linux-${ARCH}" \
+      -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose && \
+    ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
 COPY requirements.airflow.txt /tmp/requirements.airflow.txt
 

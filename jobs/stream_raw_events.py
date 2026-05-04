@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, from_json, to_timestamp, to_date, date_format,
     current_timestamp, lit, coalesce, sha2, concat_ws, trim,
-    first
+    first, from_utc_timestamp
 )
 from pyspark.sql.types import (
     StructType, StructField, StringType, IntegerType, DecimalType
@@ -98,7 +98,7 @@ def parse_data(kafka_df):
         .withColumn("invoice_date", to_date(col("invoice_timestamp")))
         .withColumn("invoice_time", date_format(col("invoice_timestamp"), "HH:mm:ss"))
         .withColumn("description", trim(col("description")))
-        .withColumn("ingested_at", current_timestamp())
+        .withColumn("ingested_at", from_utc_timestamp(current_timestamp(), "Asia/Seoul"))
         .withColumn("load_run_id", lit("sorae"))
         .withColumn(
             "event_id",

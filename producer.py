@@ -5,9 +5,12 @@ from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 import time
 import subprocess
-from datetime import timedelta
+from datetime import datetime, timezone
 
 BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+FALLBACK_PATH = os.getenv("FALLBACK_PATH", "/app/fallback/failed_messages.jsonl")
+
+
 def create_producer():
     for attempt in range(1, 31):
         try:
@@ -46,8 +49,8 @@ def get_csv_message():
 
     # target interval 기준 필터링
     if target_start and target_end:
-        start_ts = pd.to_datetime(target_start).tz_localize(None)
-        end_ts = pd.to_datetime(target_end).tz_localize(None)
+        start_ts = pd.to_datetime(target_start).tz_localize("Asia/Seoul").tz_localize(None)
+        end_ts = pd.to_datetime(target_end).tz_localize("Asia/Seoul").tz_localize(None)
 
         df = df[
             (df["targetDate"] >= start_ts) &
@@ -133,11 +136,18 @@ def get_csv_message():
 
     return messages
 
-# def trigger_airflow(start, end):
-#     subprocess.run([
-#         "airflow", "dags", "trigger", "retail_pipeline",
-#         "--conf", json.dumps({"start": start, "end": end})
-#     ], check=True)
+def save_failed_message(message, error):
+    os.makedirs(os.path.dirname(FALLBACK_PATH), exist_ok=True)
+
+    failed_record = {
+        "failed_at": datetime.now(timezone.utc).isoformat(),
+        "error": type(error).__name__,
+        "error_message": str(error),
+        "message": message,
+    }
+
+    with open(FALLBACK_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(failed_record, ensure_ascii=False) + "\n")
 
 
 def main():
@@ -148,6 +158,8 @@ def main():
         data = get_csv_message();
 
         print(f"[Producer] message count: {len(data)}")
+
+        producer_sleep = float(os.getenv("PRODUCER_SLEEP", "0.1"))
 
         for msg in data:
             message = msg["message"]
@@ -171,13 +183,16 @@ def main():
                 f"message={message}"
             )
 
-            time.sleep(0.1)
+            time.sleep(producer_sleep)
 
         producer.flush()
         print("[Producer] all messages flushed")
     
     except KeyboardInterrupt:
         print("프로듀서 종료")
+    except Exception as e:
+        print(f"[FAILED] event_id={msg.get('event_id')}, error={e}")
+        save_failed_message(msg, e)
     finally:
         # 남은 메시지 전송 및 리소스 해제
         producer.flush()
