@@ -1599,3 +1599,7 @@ docker compose up -d api
 http://localhost:8000/health
 ```
 
+---
+# 향후 과제 
+- slack 알람 추가
+
