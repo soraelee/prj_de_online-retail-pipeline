@@ -24,7 +24,7 @@ dag = DAG(
     'retail_pipeline',
     default_args=default_args,
     description='Retail Data Pipeline: Dimension & Mart Build',
-    schedule="30 0 * * *",
+    schedule="15 0 * * *",
     catchup=False,
 )
 

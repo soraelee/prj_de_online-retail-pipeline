@@ -4,11 +4,11 @@ import pandas as pd
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 import time
-import subprocess
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
-FALLBACK_PATH = os.getenv("FALLBACK_PATH", "/app/fallback/failed_messages.jsonl")
+FALLBACK_PATH = os.getenv("FALLBACK_PATH", "/app/fallback/pending/failed_messages.jsonl")
 
 
 def create_producer():
@@ -137,18 +137,23 @@ def get_csv_message():
     return messages
 
 def save_failed_message(message, error):
-    os.makedirs(os.path.dirname(FALLBACK_PATH), exist_ok=True)
+    try:
+        os.makedirs(os.path.dirname(FALLBACK_PATH), exist_ok=True)
 
-    failed_record = {
-        "failed_at": datetime.now(timezone.utc).isoformat(),
-        "error": type(error).__name__,
-        "error_message": str(error),
-        "message": message,
-    }
+        failed_record = {
+            "failed_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(),
+            "error": type(error).__name__,
+            "error_message": str(error),
+            "message": message,
+        }
 
-    with open(FALLBACK_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps(failed_record, ensure_ascii=False) + "\n")
+        with open(FALLBACK_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(failed_record, ensure_ascii=False) + "\n")
 
+        print(f"[FALLBACK SAVED] path={FALLBACK_PATH}")
+
+    except Exception as file_error:
+        print(f"[FALLBACK SAVE FAILED] path={FALLBACK_PATH}, error={file_error}")
 
 def main():
     # kafka producer
@@ -166,33 +171,53 @@ def main():
             invoice_no = msg.get("invoice_no")
             event_type = msg.get("event_type")
 
-            future = producer.send(
-                "retail-events",
-                key=invoice_no,
-                value=message
-            )
+            try:
+                future = producer.send(
+                    "retail-events",
+                    key=invoice_no,
+                    value=message
+                )
 
-            metadata = future.get(timeout=10)
+                metadata = future.get(timeout=10)
 
-            print(
-                f"[Kafka Sent] topic={metadata.topic}, "
-                f"partition={metadata.partition}, "
-                f"offset={metadata.offset}, "
-                f"event_type={event_type}, "
-                f"invoice_no={invoice_no}, "
-                f"message={message}"
-            )
+                print(
+                    f"[Kafka Sent] topic={metadata.topic}, "
+                    f"partition={metadata.partition}, "
+                    f"offset={metadata.offset}, "
+                    f"event_type={event_type}, "
+                    f"invoice_no={invoice_no}, "
+                    f"message={message}"
+                )
+                future = producer.send(
+                    "retail-events",
+                    key=invoice_no,
+                    value=message
+                )
 
-            time.sleep(producer_sleep)
+                metadata = future.get(timeout=10)
 
-        producer.flush()
-        print("[Producer] all messages flushed")
+                print(
+                    f"[Kafka Sent] topic={metadata.topic}, "
+                    f"partition={metadata.partition}, "
+                    f"offset={metadata.offset}, "
+                    f"event_type={event_type}, "
+                    f"invoice_no={invoice_no}, "
+                    f"message={message}"
+                )
+
+                time.sleep(producer_sleep)
+
+                producer.flush()
+                print("[Producer] all messages flushed")
+
+            except Exception as e:
+                print(f"[FAILED] event_id={msg.get('event_id')}, error={e}")
+                save_failed_message(msg, e)
+                continue
+
     
     except KeyboardInterrupt:
         print("프로듀서 종료")
-    except Exception as e:
-        print(f"[FAILED] event_id={msg.get('event_id')}, error={e}")
-        save_failed_message(msg, e)
     finally:
         # 남은 메시지 전송 및 리소스 해제
         producer.flush()

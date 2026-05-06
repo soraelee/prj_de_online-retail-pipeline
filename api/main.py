@@ -194,18 +194,20 @@ def get_product_sales(
     """
     sql = """
         SELECT
-            stock_code,
-            category,
+            m.stock_code,
+            m.category,
+            p.product_name,
             CASE WHEN (%(event_type)s = 'order') THEN order_cnt 
                 WHEN (%(event_type)s = 'cancel') THEN cancel_cnt
                 ELSE order_cnt + cancel_cnt END AS event_cnt,
             CASE WHEN (%(event_type)s = 'order') THEN order_rate 
                 WHEN (%(event_type)s = 'cancel') THEN cancel_rate
                 ELSE order_rate + cancel_rate END AS event_rate
-        FROM mart_product_sales
+        FROM mart_product_sales m
+        JOIN dim_product p ON m.stock_code = p.stock_code
         WHERE (%(start_date)s IS NULL OR order_date >= %(start_date)s::date)
           AND (%(end_date)s IS NULL OR order_date <= %(end_date)s::date)
-          AND (%(category)s IS NULL OR category = %(category)s)
+          AND (%(category)s IS NULL OR m.category = %(category)s)
         ORDER BY event_cnt DESC
         LIMIT 5
     """

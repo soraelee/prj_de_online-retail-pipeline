@@ -98,12 +98,26 @@ with DAG(
     check_raw_count = BashOperator(
         task_id="check_raw_count",
         bash_command=dedent("""
-            docker exec postgres psql -U postgres -d retail_pipeline -c "
-            SELECT COUNT(*) AS raw_count
-            FROM raw_retail_events
-            WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start") }}'
-              AND invoice_timestamp <  '{{ dag_run.conf.get("target_end") }}';
-            "
+            for i in $(seq 1 30)
+            do
+                COUNT=$(docker exec postgres psql -U postgres -d retail_pipeline -t -A -c "
+                SELECT COUNT(*)
+                FROM raw_retail_events
+                WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+                    AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
+                ")
+
+                echo "[check_raw_count] attempt=$i count=$COUNT"
+
+                if [ "$COUNT" -gt 0 ]; then
+                    exit 0
+                fi
+
+                sleep 10
+            done
+
+            echo "[check_raw_count] raw count is still 0"
+            exit 1
         """)
     )
 

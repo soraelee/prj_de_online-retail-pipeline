@@ -438,7 +438,7 @@ jQuery(function () {
         const chartRows = rows.slice(0, 5);
 
         const categories = chartRows.map(function (row) {
-            return row.stock_code || "-";
+            return row.product_name || "-";
         });
 
         const eventCounts = chartRows.map(function (row) {
@@ -519,7 +519,7 @@ jQuery(function () {
 
                     return ""
                         + "<div style='padding:10px;'>"
-                        + "<b>" + safeText(row.stock_code) + "</b><br/>"
+                        + "<b>" + safeText(row.product_name) + "</b><br/>"
                         + safeText(row.description) + "<br/>"
                         + "카테고리: " + safeText(row.category) + "<br/>"
                         + "주문 수: " + formatNumber(row.event_cnt) + "건"

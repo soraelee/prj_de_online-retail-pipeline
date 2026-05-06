@@ -27,39 +27,35 @@ https://archive.ics.uci.edu/dataset/352/online%2Bretail
 
 ### 흐름
 
-CSV 원본 데이터 → Python Producer → Kafka Topic → Consumer/Spark(또는 향후 처리) → 저장/분석
+CSV 원본 데이터 → Python Producer → Kafka Topic → Consumer/Spark(또는 향후 처리) → 저장 →Dashboard
 
 ## 파이프라인 구성도
-
-![파이프라인 구성도](docs/online_retail_pipeline.png)
-
-
+https://excalidraw.com/#json=GSD5xY28rbdpiu6xE1Sjq,T8LC92omkhGyQoQa8jMpQA
+![[total_online_retail_pipeline.png]]
 ## Kafka 수집 설계
-
-https://excalidraw.com/#json=5SDq4YuITu_4sUBd2y6Os,qb_f3KVSaG0Gi11H0w7zbg
-
-![Kafka 수집 설계](docs/kafka-producer.png)
 
 ### 설계 포인트
 
 - 주문 / 취소 이벤트를 구분
 - key는 `invoice_no`
 - Kafka message key는 `InvoiceDate` 기준 오름차순 정렬 후 전송
+- 이 때 `InvoiceDate`의  Year을 현재 기준으로 `target_date` 구성
+	- `target_date`: 현재 일자 기준으로 데이터 필터링
 - 날짜 파싱이 실패한 row는 제외
-- `future.get()`을 통해 전송 결과를 확인하고 성공/실패를 로그로 출력
-- 향후 invalid row 저장, dead-letter 처리, S3 적재 등으로 확장 가능
+- `future.get()`을 통해 전송 결과를 확인하고 실패 시 **JSONL**로 저장
 
 ## Producer 코드 흐름
 1. CSV 파일(`data/online_retail.csv`)을 읽는다.
 2. `InvoiceDate` 컬럼을 datetime 형식으로 변환한다.
 3. 날짜 변환이 실패한 row는 제외한다.
 4. `InvoiceDate` 기준으로 오름차순 정렬한다.
-5. 각 row를 순회하면서 `InvoiceNo`가 `C`로 시작하는지 확인하여 이벤트 유형을 결정한다.
+5. `InvoiceDate` 에 15년을 더하여 `target_date`를 구성한다.
+6. 각 row를 순회하면서 `InvoiceNo`가 `C`로 시작하는지 확인하여 이벤트 유형을 결정한다.
    - `C`로 시작하면 `cancel`
    - 그 외는 `order`
 6. row 데이터를 JSON 메시지 형태로 변환한다.
 7. `invoice_no`를 Kafka key로 하여 `retail-events` topic에 전송한다.
-8. `future.get()`으로 전송 결과를 확인하고 로그를 출력한다.
+8. `future.get()`으로 전송 결과를 확인하고 로그를 출력하며, 실패 시 `JSONL`로 저장한다.
 9. 종료 전 `flush()`와 `close()`를 호출하여 남은 메시지를 전송하고 리소스를 정리한다.
 
 ## 메시지 생성 방식
@@ -79,16 +75,21 @@ https://excalidraw.com/#json=5SDq4YuITu_4sUBd2y6Os,qb_f3KVSaG0Gi11H0w7zbg
 	'stock_code': '85123A', 
 	'description': 'WHITE HANGING HEART T-LIGHT HOLDER', 
 	'quantity': 6, 
+	'category': 'A',
 	'unit_price': 2.55, 
 	'customer_id': '17850.0', 
 	'country': 'United Kingdom', 
-	'invoice_timestamp': '12/1/2010 8:26', 
+	'invoice_timestamp': '2026-12-01 08:26:00', 
+	'target_date': '2026-12-01',
+	'target_time': '08:26:00',
+	'org_invoice_timestamp': '2010-12-01 08:26:00'
 	'metadata': {
 		'source': 'online_retail_csv', 
 		'version': 'v1'
 	}
 }
 ```
+
 ## Topic 구성 방식
 ### Topic 정보
 Topic 이름: retail-events
@@ -173,7 +174,7 @@ producer.send() 이후 future.get()을 사용하여 전송 성공 여부를 확�
 
 - raw_retail_events
 
-### **Job2. batch_dim**
+### **Job2. build_dim**
 
 **📌 데이터 처리 흐름**
 
@@ -198,7 +199,7 @@ producer.send() 이후 future.get()을 사용하여 전송 성공 여부를 확�
 - dim_product
 - dim_customer
 
-### **Job 3. batch_mart**
+### **Job 3. build_mart**
 
 **📌 데이터 처리 흐름**
 
@@ -233,6 +234,7 @@ producer.send() 이후 future.get()을 사용하여 전송 성공 여부를 확�
     
     - invoice_time : 주문 시간
     - invoice_date : 주문 일자
+    - invoice_timestamp : 주문 일시
     - invoice_no : 주문ID
     - stock_code : 상품코드
     - category : 카테고리 (상품 코드 뒤 영문 - 없을 경우 ‘ETC’)
@@ -244,12 +246,14 @@ producer.send() 이후 future.get()을 사용하여 전송 성공 여부를 확�
     - event_type(order / cancel) : 주문 구분
         - `invoice_no`가 `C`로 시작하면 cancel
         - 아니면 order
+	 - org_invoice_timestamp : csv 내 기존 invoice_timestamp
     
     역할:
     
     - 원본 최대한 유지
     - 정제 최소화
     - “무슨 이벤트가 언제 발생했는지” 기록
+    - invoice_date는 target_date, 즉 현재 일자를 기준으로 표현
     
     2. Product / Customer
     
@@ -286,12 +290,7 @@ producer.send() 이후 future.get()을 사용하여 전송 성공 여부를 확�
     
     - 차트/지표가 바로 붙을 수 있게 요약
     
-    ⭐️daily의 기준
     
-    - ‘하루가 지남’에 대한 트리거 작동
-        
-        invoice_timestamp >= data_interval_start
-        invoice_timestamp < data_interval_end
         
         
 
@@ -339,11 +338,12 @@ Spark 전처리 및 저장 과정에서 다음과 같은 예외 처리 전략을
   "unit_price":2.55,
   "customer_id":"17850",
   "country":"United Kingdom",
-  "invoice_timestamp":"2010-12-01T08:26:00",
-  "invoice_date":"2010-12-01",
+  "invoice_timestamp":"2026-12-01T08:26:00",
+  "invoice_date":"2026-12-01",
   "invoice_time_str":"08:26:00",
   "ingested_at":"2026-04-22T21:10:00",
-  "load_run_id":"run_001"
+  "load_run_id":"run_001",
+  "org_invoice_timestamp":"2010-12-01T08:26:00"
 }
 ```
 
@@ -415,7 +415,8 @@ CREATE TABLE raw_retail_events(
     country VARCHAR(100),
     invoice_timestamp TIMESTAMP NOT NULL,
     invoice_date DATE NOT NULL,
-    invoice_time_str VARCHAR(8),   -- HH:mm:ss
+    invoice_time VARCHAR(8),   -- HH:mm:ss
+    org_invoice_timestamp TIMESTAMP NOT NULL,
     ingested_at TIMESTAMP NOT NULL,
     load_run_id VARCHAR(50) NOT NULL
 );
@@ -434,6 +435,7 @@ CREATE TABLE dim_product (
     stock_code VARCHAR(30) PRIMARY KEY,
     category VARCHAR(30),
     description TEXT,
+    product_name TEXT,
     latest_unit_price NUMERIC(10,2)
 );
 
@@ -500,13 +502,9 @@ docker exec -it spark-master spark-submit \
 
 # Airflow 설계 및 구현
 
-## Airflow 파이프라인
-https://excalidraw.com/#json=6pF8jJXIVrFyy7EBjCejX,bL7SalQKRf9rlC_6r-5N0Q
-
-![Airflow 포함 파이프라인 구성도](docs/airflow_pipeline.png)
 ## Airflow DAG 설계
 
-본 프로젝트에서는 Kafka Producer, Spark Structured Streaming, PostgreSQL 적재, Dimension/Mart 테이블 생성을 Airflow DAG로 관리한다.
+본 프로젝트에서는 Kafka Producer, Spark Structured Streaming, PostgreSQL 적재, Dimension/Mart 테이블 생성 및 실패 시 backfill의 과정을 Airflow DAG로 관리한다.
 
 Airflow는 직접 데이터를 처리하기보다는, 각 처리 단계의 실행 순서와 의존성을 관리하는 역할을 담당한다.
 
@@ -516,17 +514,21 @@ Airflow는 직접 데이터를 처리하기보다는, 각 처리 단계의 실�
 
 본 프로젝트의 DAG는 수집 단계와 가공 단계를 분리하여 구성했다.
 
-| DAG ID | 실행 단위 | 목적 |
-|---|---|---|
-| `setup_retail_pipeline` | 수동 실행 / 초기 적재 단위 | Kafka Topic 생성, Raw 테이블 초기화, Spark Streaming 실행, Producer 실행 |
-| `retail_pipeline` | 배치 실행 단위 | Raw 데이터를 기반으로 Dimension / Mart 테이블 생성 |
+| DAG ID                    | 실행 단위            | 목적                                                 |
+| ------------------------- | ---------------- | -------------------------------------------------- |
+| `setup_retail_pipeline`   | 수동 실행 / 초기 적재 단위 | Kafka Topic 생성, Raw 테이블 초기화, Spark Streaming 실행    |
+| `hourly_retail_ingestion` | 매시간 실행           | streaming alive 여부 확인, collector 실행                |
+| `retail_pipeline`         | 매일 실행            | Raw 데이터를 기반으로 Dimension / Mart 테이블 생성              |
+| `backfill_retail_jsonl`   | 매일 12:30 실행      | fallback JSONL 있으면 Kafka replay<br>raw/dim/mart 복구 |
 
 #### 입력 / 출력
 
-| DAG ID | 입력 | 출력 |
-|---|---|---|
-| `setup_retail_pipeline` | Online Retail CSV, Kafka Topic `retail-events` | PostgreSQL `raw_retail_events` |
-| `retail_pipeline` | PostgreSQL `raw_retail_events` | `dim_customer`, `dim_product`, `mart_daily_orders`, `mart_product_sales` |
+| DAG ID                    | 입력                             | 출력                                                                                                         |
+| ------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `setup_retail_pipeline`   | Kafka Topic `retail-events`    |                                                                                                            |
+| `hourly_retail_ingestion` | Online Retail CSV              | PostgreSQL `raw_retail_events`                                                                             |
+| `retail_pipeline`         | PostgreSQL `raw_retail_events` | `dim_customer`, `dim_product`, `mart_daily_orders`, `mart_product_sales`                                   |
+| `backfill_retail_jsonl`   | fallback JSONL                 | PostgreSQL `raw_retail_events`<br>`dim_customer`, `dim_product`, `mart_daily_orders`, `mart_product_sales` |
 
 ---
 
@@ -542,13 +544,10 @@ create_kafka_topic
 start_stream_raw_events
     ↓
 check_stream_alive
-    ↓
-run_collector
-    ↓
-check_raw_count
 ```
 
-각 Task의 역할은 다음과 같다.
+- kafka topic 및 streaming으로 데이터를 전달할 기반을 마련
+##### Task의 역할
 
 | Task                      | 역할                                  |
 | ------------------------- | ----------------------------------- |
@@ -556,10 +555,30 @@ check_raw_count
 | `create_kafka_topic`      | Spark Streaming 실행 전 Kafka Topic 생성 |
 | `start_stream_raw_events` | Spark Structured Streaming Job 실행   |
 | `check_stream_alive`      | Spark Streaming 프로세스 실행 여부 확인       |
-| `run_collector`           | Kafka Producer 실행                   |
-| `check_raw_count`         | PostgreSQL Raw 테이블 적재 건수 확인         |
 
-`retail_pipeline`
+
+#### `hourly_pipeline_ingestion`
+
+```
+check_stream_alive
+↓
+run_collector
+↓
+wait_and_check_raw_count
+```
+
+- streaming이 잘 동작하는 지 확인 후 매 시간 마다 producer를 통해 해당 시간의 데이터를 전달
+- CSV 데이터를 실제 데이터처럼 움직이도록 구성하기 위해 이와 같이 구성
+##### Task의 역할
+| Task                 | 역할                            |
+| -------------------- | ----------------------------- |
+| `check_stream_alive` | Spark Streaming 프로세스 실행 여부 확인 |
+| `run_collector`      | Kafka Producer 실행             |
+| `check_raw_count`    | PostgreSQL Raw 테이블 적재 건수 확인   |
+
+
+#### `retail_pipeline`
+
 ```text
 build_dim_customer
     ↓
@@ -568,9 +587,46 @@ build_dim_product
 build_mart_daily_orders
     ↓
 build_mart_product_sales
+    ↓
+build_mart_customer_repeats
 ```
 
-retail_pipeline DAG는 Raw 테이블에 적재된 데이터를 기준으로 분석용 Dimension / Mart 테이블을 생성한다.
+-  Raw 테이블에 적재된 데이터를 기준으로 분석용 Dimension / Mart 테이블을 생성
+
+#### `backfill_retail_jsonl`
+
+```
+create_kafka_topic
+   ↓
+check_spark_streaming
+   ↓
+prepare_jsonl_file
+   ↓
+replay_jsonl_to_kafka
+   ↓
+check_raw_count
+   ↓
+build_dim
+   ↓
+build_mart
+   ↓
+check_agg_count
+   ↓
+archive_processed_jsonl
+```
+
+- 매일 12:30 실행 하여 pending 파일을 processing으로 옮김
+- fallback JSONL 있으면 Kafka replay
+- 성공 시 raw/dim/mart 복구, 실패 시 error JSONL로 저장됨
+
+##### Task의 역할
+
+| Task                    | 역할                                     |
+| ----------------------- | -------------------------------------- |
+| prepare_jsonl_file      | DAG에서는 먼저 pending 파일을 processing으로 옮긴다 |
+| replay_jsonl_to_kafka   | replay 실행 task                         |
+| archive_processed_jsonl | 성공 시 `processed`로 저장                   |
+
 
 ### 3. Task 간 데이터 전달 방식
 
@@ -586,24 +642,18 @@ Producer
 
 ### 4. 스케줄
 
-현재 프로젝트는 로컬 개발 및 과제 검증 목적이므로 DAG는 수동 실행 방식으로 구성했다.
-```
-schedule=None
-catchup=False
-```
-수동 실행으로 구성한 이유는 다음과 같다.
-
 Kafka Producer가 샘플 데이터를 직접 발행하는 구조이다.
 Spark Streaming 실행 여부를 먼저 확인한 뒤 Producer를 실행해야 한다.
-테스트 과정에서 Raw 테이블과 checkpoint를 반복 초기화해야 한다.
+이러한 한계를 극복하여 Streaming 형식으로 구현하기 위해, 데이터를 `hourly`로 실행하여, 해당 시간 내의 데이터를 전달한다.
+retail_pipeline DAG는 일 단위 배치로 실행할 수 있다.
 
-운영 환경으로 확장할 경우, retail_pipeline DAG는 일 단위 배치로 실행할 수 있다.
+| Task                      | 스케줄          | 역할                                                                                                          |
+| ------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| `setup_retail_pipeline`   | `None`       | 최초 시작 시 실행되어 kafka topic 및 streaming 기반 마련                                                                  |
+| `hourly_retail_ingestion` | `@hourly`    | 시간단위로 producer를 발행하여 아래의 기준으로 데이터를 적재한다. <br>`data_interval_start <= invoice_timestamp < data_interval_end` |
+| `retail_pipeline_dag`     | `@daily`     | 하루 데이터가 마무리 된 후 전체 데이터를 기준으로 고객, 상품 데이터 overwrite, <br>일별 주문 집계, 일별 상품 판매량, 일별 고객 재구매율 등의 데이터 append        |
+| `backfill_retail_jsonl`   | `30 0 * * *` | `backfill JSONL`이 있는 경우 재처리하여 다시 raw 데이터 및 코어데이터, 집계 데이터 적재                                                 |
 
-```text
-예시: 매일 00:10 실행
-cron: 10 0 * * *
-timezone: Asia/Seoul
-```
 ### 5. Retry / Backoff / Failure Handling
 
 Airflow Task는 네트워크, DB 연결, Kafka/Spark 실행 지연과 같은 일시적 실패에 대비하여 retry를 적용할 수 있도록 설계했다.
@@ -622,15 +672,26 @@ Airflow Task는 네트워크, DB 연결, Kafka/Spark 실행 지연과 같은 일
 
 같은 DAG를 다시 실행해도 데이터가 중복 적재되거나 이전 실행 상태와 충돌하지 않도록 다음 처리를 추가했다.
 
-- Raw 테이블 초기화
+- 해당 시간의 Raw 테이블 초기화
 ```sql
-TRUNCATE TABLE raw_retail_events RESTART IDENTITY CASCADE;
+DELETE FROM order_detail
+
+WHERE invoice_no IN (
+
+SELECT invoice_no
+
+FROM order_info
+
+WHERE invoice_timestamp >= '{{data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+
+AND invoice_timestamp < '{{data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
 ```
 
-- Spark Structured Streaming checkpoint 삭제
+- Spark Structured Streaming checkpoint 삭제 (최초 실행 시)
 ```bash
 rm -rf /tmp/checkpoints/retail_events_raw
 ```
+
 - Kafka Topic은 Spark Streaming 실행 전에 미리 생성
 ```bash
 kafka-topics --create --if-not-exists --topic retail-events
@@ -668,10 +729,15 @@ Airflow 실행을 위해 다음 파일을 구성했다.
 │   └── airflow/
 │       └── dags/
 │           ├── setup_retail_pipeline.py
-│           └── retail_pipeline_dag.py
+│           ├── retail_pipeline_dag.py
+│           ├── hourly_retail_ingestion.py
+│           └── backfill_retail_jsonl.py 
 ├── jobs/
-│   └── stream_raw_events.py
-└── producer.py
+│   ├── stream_raw_events.py
+│   ├── build_dim.py
+│   └── build_mart.py
+├── producer.py
+└── replay_fallback_jsonl.py
 ```
 ### 9. 정리
 
@@ -679,210 +745,6 @@ Airflow를 통해 단순히 스크립트를 순서대로 실행하는 방식이 
 
 수집 단계는 setup_retail_pipeline, 가공 단계는 retail_pipeline으로 분리하여 DAG의 역할을 명확히 구분했다.
 
----
-# 2026.04.30 수정사항
-
-### target_date 구성 및 target_date에 맞게 스케줄 구성
-```
-기존 방식:
-실행할 때마다 raw 전체 TRUNCATE
-→ 전체 CSV 재전송
-→ 전체 raw 재적재
-→ 전체 mart 재생성
-
-개선 방식:
-Airflow 실행 구간 또는 target_datetime 기준
-→ 해당 날짜/시간 구간 데이터만 전송
-→ 해당 구간 raw만 적재/재처리
-→ 해당 구간 mart만 재생성
-```
-
-## 진행 순서
-1. raw_retail_events drop 후 새 컬럼 포함해서 재생성
-2. order_info / order_detail에 invoice_timestamp, invoice_date 추가
-3. producer.py에서 targetDate 기준 필터링 확인
-4. stream_raw_events.py schema/write 컬럼 반영
-5. setup_retail_pipeline schedule="@hourly" 설정
-6. 작은 시간 구간 수동 trigger 또는 backfill 테스트
-7. raw/order_info/order_detail 적재 확인
-8. retail_pipeline schedule="@daily" 설정
-9. daily mart 생성 확인
-10. 그 다음 catchup=True 또는 backfill 범위 확장
-
-> setup_retail_pipeline DAG는 `@hourly` 스케줄로 구성하여 Airflow의 `data_interval_start`, `data_interval_end` 기준으로 1시간 단위 이벤트를 수집한다. Producer는 원본 `InvoiceDate`를 15년 이동한 `invoice_timestamp` 기준으로 필터링하여 해당 interval에 속하는 이벤트만 Kafka로 발행한다.
-retail_pipeline DAG는 `@daily` 스케줄로 구성하여 하루 단위로 적재된 raw/order 데이터를 기반으로dimension 및 mart 테이블을 생성한다.
-초기 구현에서는 전체 테이블을 `TRUNCATE`하는 방식으로 재실행을 처리했으나, 스케줄 기반 처리로 확장하면서 target interval에 해당하는 데이터만 삭제 후 재적재하도록 변경하였다. 이를 통해 전체 데이터가 아닌 시간 구간 단위 재처리가 가능하도록 구성했다.
-
-## Producer
-```python
-target_start = os.getenv("TARGET_START")
-target_end = os.getenv("TARGET_END")
-
-df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
-if target_start and target_end:
-start_ts = pd.to_datetime(target_start).tz_localize(None)
-end_ts = pd.to_datetime(target_end).tz_localize(None)
-
-df = df[
-(df["target_date"] >= start_ts) &
-(df["target_date"] < end_ts)
-].dropna(subset=["InvoiceDate"]).sort_values(by=["InvoiceDate", "InvoiceNo"], ascending=[True, True], kind="mergesort").reset_index(drop=True)
-
-```
-
-## Airflow 
-
-#### DAG 스케줄 변경
-##### setup_retail_pipeline
-```python
-# Default 설정
-
-default_args = {
-'owner': 'sorae',
-'retries': 3,
-'retry_delay': timedelta(seconds=10),
-'start_date': datetime(2025, 12, 1),
-}
-
-with DAG(
-dag_id="setup_retail_pipeline",
-default_args=default_args,
-schedule='@hourly',
-catchup=False,
-) as dag:
-```
-
-##### retail_pipeline_dag
-```python
-# Default 설정
-
-default_args = {
-'owner': 'sorae',
-'retries': 3,
-'retry_delay': timedelta(minutes=5),
-'start_date': datetime(2025, 12, 1),
-}
-
-dag = DAG(
-'retail_pipeline',
-default_args=default_args,
-description='Retail Data Pipeline: Dimension & Mart Build',
-schedule_interval='@daily',
-catchup=False,
-)
-```
-#### 테이블 reset task
-##### setup_retail_pipeline
-```sql
--- 1. target interval 주문번호 기준 detail 삭제
-DELETE FROM order_detail
-WHERE invoice_no IN (
-    SELECT invoice_no
-    FROM order_info
-    WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-      AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}'
-);
-
--- 2. order_info 삭제
-DELETE FROM order_info
-WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
-
--- 3. raw 삭제
-DELETE FROM raw_retail_events
-WHERE invoice_timestamp >= '{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}'
-  AND invoice_timestamp <  '{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}';
-
-```
-
-##### retail_pipeline_dag
-```sql
--- 1. dim_customer 삭제
-
-TRUNCATE TABLE dim_customer;
-
--- 2. dim_product 삭제
-
-TRUNCATE TABLE dim_product;
-
--- 3. dim_customer rebuild
-
-INSERT INTO dim_customer (
-    customer_id,
-    first_purchase_at,
-    last_purchase_at,
-    total_order_count,
-    country
-)
-SELECT
-    customer_id,
-    MIN(invoice_timestamp) AS first_purchase_at,
-    MAX(invoice_timestamp) AS last_purchase_at,
-    COUNT(DISTINCT invoice_no) AS total_order_count,
-    MAX(country) AS country
-FROM raw_retail_events
-WHERE customer_id IS NOT NULL
-AND event_type = 'order'
-GROUP BY customer_id;
-
-
--- 4. dim_product rebuild
-
-INSERT INTO dim_product (
-stock_code,
-category,
-description,
-latest_unit_price
-)
-
-SELECT
-stock_code,
-MAX(category) AS category,
-MAX(description) AS description,
-MAX(unit_price) AS latest_unit_price
-FROM raw_retail_events
-WHERE stock_code IS NOT NULL
-GROUP BY stock_code;
-
--- 5. 해당 날짜 mart 삭제
-
-DELETE FROM mart_daily_orders
-WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
-
--- 6. 해당 날짜 mart product 삭제
-DELETE FROM mart_product_sales
-WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
-  
-
--- 7. 해당 날짜 mart customer repeat 삭제
-
-DELETE FROM mart_customer_repeats
-WHERE order_date = '{{ data_interval_start.strftime("%Y-%m-%d") }}';
-```
-
-#### collector(producer 실행)
-```python
-run_collector = BashOperator(
-task_id="run_collector",
-
-# bash_command="docker start -a collector"
-bash_command="""
-docker compose run --rm \
--e TARGET_START='{{ data_interval_start.strftime("%Y-%m-%d %H:%M:%S") }}' \
--e TARGET_END='{{ data_interval_end.strftime("%Y-%m-%d %H:%M:%S") }}' \
-collector
-"""
-
-)
-```
-
-### backfill 진행 로직
-```bash
-docker compose exec airflow airflow dags backfill \
-  -s 2025-12-01T00:00:00 \
-  -e 2025-12-02T00:00:00 \
-  setup_retail_pipeline
-```
 ---
 
 # 로드 테스트 및 장애 대응
@@ -1130,7 +992,7 @@ Producer가 Kafka에 메시지를 발행하지 못하는 상황이다.
 2. Kafka broker 상태 확인
 3. 전송 실패 메시지는 fallback JSONL 파일에 저장
 4. Kafka 복구 후 fallback 파일 재전송
-5. 반복 실패 시 Slack alert 발송
+5. 매일 00:30에 fallback JSONL이 있을 경우 DAG를 통해 재처리 시도
 
 ### 3.4 운영 보완점  
   
@@ -1138,36 +1000,45 @@ Producer가 Kafka에 메시지를 발행하지 못하는 상황이다.
 - KST 기준 시간대 통일  
 - raw count 검증 task 추가  
 - Slack alert  
-- Grafana/Prometheus 연동은 개선 방향
+
 ## 4. Backfill DAG 설계
 ### 4.1 Backfill이 필요한 이유
+
 실시간 파이프라인에서는 Producer, Kafka, Spark Streaming, PostgreSQL 중 하나라도 장애가 발생하면 특정 시간 구간의 데이터가 누락될 수 있다.이때 전체 데이터를 처음부터 다시 처리하는 것은 비효율적이므로, 장애가 발생한 target interval만 다시 처리할 수 있는 backfill DAG가 필요하다. 
 본 프로젝트에서는 `target_start`, `target_end`를 Airflow DAG conf로 전달하여 특정 구간만 재처리할 수 있도록 구성하였다.
 ### 4.2 DAG 구조
 ```text
-backfill_retail_ingestion
-   ↓
-validate_backfill_params
-   ↓
-reset_target_range
+backfill_retail_jsonl
    ↓
 create_kafka_topic
    ↓
-run_collector_for_range
+check_spark_streaming
+   ↓
+prepare_jsonl_file
+   ↓
+replay_jsonl_to_kafka
    ↓
 check_raw_count
+   ↓
+build_dim
+   ↓
+build_mart
+   ↓
+check_agg_count
+   ↓
+archive_processed_jsonl
 ```
 
 ### 4.3 처리 흐름
 
-1. 사용자가 장애 구간을 확인한다.
-2. Airflow에서 `backfill_retail_ingestion` DAG를 수동 실행한다.
-3. DAG 실행 시 `target_start`, `target_end`를 conf로 전달한다.
-4. 기존 raw/order 데이터를 해당 구간 기준으로 삭제한다.
-5. Collector가 해당 구간 데이터를 Kafka로 재발행한다.
-6. Spark Streaming이 Kafka 메시지를 다시 읽어 PostgreSQL에 적재한다.
-7. `check_raw_count` task에서 적재 건수를 확인한다.
-8. 이후 기존 `retail_pipeline` DAG를 실행하여 dim/mart 테이블을 재생성한다.
+1. fallback JSONL이 적재된다.
+2. Airflow에서 `backfill_retail_jsonl` DAG를 매일 밤 12시 반에 실행한다.
+3. DAG 실행 시 `replay_fallback_jsonl.py`를 통해 fallback JSONL을 파싱한다.
+4. Collector가 파싱한 데이터를 Kafka로 재발행한다.
+5. Spark Streaming이 Kafka 메시지를 다시 읽어 PostgreSQL에 적재한다.
+6. `check_raw_count` task에서 적재 건수를 확인한다.
+7. 이후 기존 `retail_pipeline` DAG를 실행하여 dim/mart 테이블을 재생성한다.
+8. JSONL 파일을 성공 시 processed로 이동, 실패 시 error로 이동
 
 ## 5. Fallback / Alert 전략  
   
@@ -1183,47 +1054,7 @@ Airflow task 실패 시 Slack으로 알림을 전송한다.
 4. Spark Streaming 프로세스 미실행  
 5. PostgreSQL 연결 실패  
   
-예시 메시지:  
-  
-```text  
-[Airflow Alert]  
-DAG: backfill_retail_ingestion  
-Task: run_collector_for_range  
-Status: Failed  
-Target Range: 2025-12-01 00:00:00 ~ 2025-12-02 00:00:00  
-Action: Spark/Kafka/Postgres 상태 확인 후 backfill 재실행 필요
-```
-
-```python  
-import requests  
-  
-def slack_fail_alert(context):  
-dag_id = context["dag"].dag_id  
-task_id = context["task_instance"].task_id  
-execution_date = context["execution_date"]  
-exception = context.get("exception")  
-  
-message = f"""  
-[Airflow Task Failed]  
-DAG: {dag_id}  
-Task: {task_id}  
-Execution Date: {execution_date}  
-Error: {exception}  
-"""  
-  
-requests.post(  
-"https://hooks.slack.com/services/xxxxx/xxxxx/xxxxx",  
-json={"text": message}  
-)  
-  
-default_args = {  
-"owner": "sorae",  
-"retries": 1,  
-"retry_delay": timedelta(seconds=10),  
-"on_failure_callback": slack_fail_alert,  
-}
-```
-
+*추후 구상 예정*
 ### 5.2 Producer Fallback
 
 Kafka 연결 실패 또는 메시지 전송 timeout이 발생하면, 전송 실패 메시지를 fallback JSONL 파일에 저장한다.
@@ -1261,18 +1092,16 @@ Producer fallback JSONL은 실패 메시지를 보관하기 위한 파일이고,
 3. Spark Streaming 장애 감지는 수동 명령어 기반으로 확인하였다.
 4. Kafka consumer lag을 정교하게 수집하지 못했다.
 5. PostgreSQL insert 성능 병목을 정량적으로 분석하지는 못했다.
-6. Grafana 기반 대시보드는 구축하지 않고 개선 방향으로만 제시하였다.
-7. Airflow에서 docker compose 명령을 실행할 때 로컬 Docker 경로 및 권한 이슈가 발생할 수 있다.
+6. Airflow에서 docker compose 명령을 실행할 때 로컬 Docker 경로 및 권한 이슈가 발생할 수 있다.
 
 ### 7.2 개선 방향
 
 1. Prometheus/Grafana를 연동하여 Kafka, Spark, PostgreSQL 지표를 시각화한다.
 2. Kafka consumer lag을 주기적으로 수집하여 적재 지연을 탐지한다.
 3. Spark Streaming 프로세스 상태를 Airflow sensor 또는 별도 health check로 감지한다.
-4. Producer 실패 메시지는 dead-letter topic 또는 fallback JSONL 파일로 분리 저장한다.
-5. PostgreSQL insert 성능 개선을 위해 batch insert, partitioning, index 최적화를 검토한다.
-6. Airflow DAG 실패 시 Slack alert를 전송한다.
-7. Backfill DAG 실행 시 raw count뿐 아니라 기대 건수와 실제 적재 건수를 비교하는 검증 task를 추가한다.
+4. PostgreSQL insert 성능 개선을 위해 batch insert, partitioning, index 최적화를 검토한다.
+5. Airflow DAG 실패 시 Slack alert를 전송한다.
+6. Backfill DAG 실행 시 raw count뿐 아니라 기대 건수와 실제 적재 건수를 비교하는 검증 task를 추가한다.
 
 ---
 # API
@@ -1599,7 +1428,26 @@ docker compose up -d api
 http://localhost:8000/health
 ```
 
+![[API_serving.png]]
+
+## 8. 대시보드와의 연동
+### 대시보드 환경
+- 언어: Java 17, JavaScript
+- 프레임워크: Spring Boot 4.0.6
+- View : JSP
+- 대시보드 표현 플러그인 : apexcharts.js
+
+### 실행
+```
+http://localhost:8082/main
+```
+
+![[Dashboard_img.png]]
+
 ---
 # 향후 과제 
 - slack 알람 추가
+- 현재 hourly로 스케쥴링 하는 방식 보다 더 자연스러운 방식 확인해보기
+
+
 

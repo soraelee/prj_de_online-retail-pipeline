@@ -19,10 +19,25 @@ docker compose exec airflow airflow dags unpause setup_retail_pipeline
 echo "5. Trigger setup DAG"
 docker compose exec airflow airflow dags trigger setup_retail_pipeline
 
-echo "6. Unpause build DAG"
+echo "6. Unpause hourly DAG"
+docker compose exec airflow airflow dags unpause hourly_retail_ingestion
+
+echo "7. Trigger hourly DAG"
+docker compose exec airflow airflow dags trigger hourly_retail_ingestion
+
+echo "8. Unpause build DAG"
 docker compose exec airflow airflow dags unpause retail_pipeline
 
-echo "7. Trigger build DAG"
+echo "9. Trigger build DAG"
 docker compose exec airflow airflow dags trigger retail_pipeline
 
-echo "8. Airflow UI: http://localhost:8081"
+echo "10. Unpause backfill DAG"
+docker compose exec airflow airflow dags unpause backfill_retail_jsonl
+
+# echo "11. Trigger backfill DAG"
+# docker compose exec airflow airflow dags trigger backfill_retail_jsonl
+
+echo "11. Airflow UI: http://localhost:8081"
+
+echo "12. Set API environment variable"
+docker compose up --build -d api
