@@ -27,11 +27,11 @@ https://archive.ics.uci.edu/dataset/352/online%2Bretail
 
 ### 흐름
 
-CSV 원본 데이터 → Python Producer → Kafka Topic → Consumer/Spark(또는 향후 처리) → 저장 →Dashboard
+CSV 원본 데이터 → Python Producer → Kafka Topic → Spark→ DB →API
 
 ## 파이프라인 구성도
 https://excalidraw.com/#json=GSD5xY28rbdpiu6xE1Sjq,T8LC92omkhGyQoQa8jMpQA
-![파이프라인 구성도](docs/total_online_retail_pipeline.png)
+![파이프라인 구성](docs/total_online_retail_pipeline.png)
 ## Kafka 수집 설계
 
 ### 설계 포인트
@@ -537,8 +537,6 @@ Airflow는 직접 데이터를 처리하기보다는, 각 처리 단계의 실�
 #### `setup_retail_pipeline`
 
 ```text
-reset_raw_table 
-    ↓
 create_kafka_topic
     ↓
 start_stream_raw_events
@@ -551,7 +549,6 @@ check_stream_alive
 
 | Task                      | 역할                                  |
 | ------------------------- | ----------------------------------- |
-| `reset_raw_table`         | Raw 테이블 초기화 및 Spark checkpoint 삭제   |
 | `create_kafka_topic`      | Spark Streaming 실행 전 Kafka Topic 생성 |
 | `start_stream_raw_events` | Spark Structured Streaming Job 실행   |
 | `check_stream_alive`      | Spark Streaming 프로세스 실행 여부 확인       |
@@ -704,11 +701,78 @@ kafka-topics --create --if-not-exists --topic retail-events
 Airflow 실행과 DAG 트리거는 `run_pipeline.sh`로 자동화했다.
 
 ```bash
-docker compose up -d zookeeper kafka postgres spark-master spark-worker airflow airflow-scheduler
-docker compose up --no-start collector
+#!/bin/bash
+
+set -e
+
+echo "1. Start containers"
+
+docker compose up -d zookeeper kafka postgres spark-master spark-worker airflow airflow-scheduler collector
+
+
+# echo "2. Create collector container without starting"
+# docker compose up --no-start collector
+echo "2. Wait for Airflow to load DAGs"
+
+sleep 10
+
+
+
+echo "3. Show DAG list"
+
+docker compose exec airflow airflow dags list
+
+  
+
+echo "4. Unpause setup DAG"
 
 docker compose exec airflow airflow dags unpause setup_retail_pipeline
+
+  
+
+echo "5. Trigger setup DAG"
+
 docker compose exec airflow airflow dags trigger setup_retail_pipeline
+
+  
+
+echo "6. Unpause hourly DAG"
+
+docker compose exec airflow airflow dags unpause hourly_retail_ingestion
+
+  
+
+echo "7. Trigger hourly DAG"
+
+docker compose exec airflow airflow dags trigger hourly_retail_ingestion
+
+  
+
+echo "8. Unpause build DAG"
+
+docker compose exec airflow airflow dags unpause retail_pipeline
+
+  
+
+echo "9. Trigger build DAG"
+
+docker compose exec airflow airflow dags trigger retail_pipeline
+
+  
+
+echo "10. Unpause backfill DAG"
+
+docker compose exec airflow airflow dags unpause backfill_retail_jsonl
+
+
+
+echo "11. Airflow UI: http://localhost:8081"
+
+  
+
+echo "12. Set API environment variable"
+
+docker compose up --build -d api
 ```
 collector는 Producer 역할을 하므로 Docker Compose 실행 시 바로 실행하지 않고, DAG 내부에서 Spark Streaming이 실행된 이후 시작되도록 구성했다.
 

@@ -23,35 +23,35 @@ with DAG(
     max_active_tasks=1,
 ) as dag:
 
-    reset_tables = BashOperator(
-        task_id="reset_tables",
-        bash_command="""
-        docker exec postgres psql -U postgres -d retail_pipeline <<'SQL'
+    # reset_tables = BashOperator(
+    #     task_id="reset_tables",
+    #     bash_command="""
+    #     docker exec postgres psql -U postgres -d retail_pipeline <<'SQL'
 
-        -- 1. target interval 주문번호 기준 detail 삭제
-        DELETE FROM order_detail
-        WHERE invoice_no IN (
-            SELECT invoice_no
-            FROM order_info
-            WHERE invoice_timestamp >= '{{dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
-            AND invoice_timestamp <  '{{dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
-        );
+    #     -- 1. target interval 주문번호 기준 detail 삭제
+    #     DELETE FROM order_detail
+    #     WHERE invoice_no IN (
+    #         SELECT invoice_no
+    #         FROM order_info
+    #         WHERE invoice_timestamp >= '{{dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+    #         AND invoice_timestamp <  '{{dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+    #     );
 
-        -- 2. order_info 삭제
-        DELETE FROM order_info
-        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
-        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
+    #     -- 2. order_info 삭제
+    #     DELETE FROM order_info
+    #     WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+    #     AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
 
-        -- 3. raw 삭제
-        DELETE FROM raw_retail_events
-        WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
-        AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
+    #     -- 3. raw 삭제
+    #     DELETE FROM raw_retail_events
+    #     WHERE invoice_timestamp >= '{{ dag_run.conf.get("target_start", data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}'
+    #     AND invoice_timestamp <  '{{ dag_run.conf.get("target_end", data_interval_end.in_timezone("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")) }}';
 
-        SQL
+    #     SQL
 
-        docker exec spark-master rm -rf /tmp/checkpoints/retail_events_raw
-        """
-    )
+    #     docker exec spark-master rm -rf /tmp/checkpoints/retail_events_raw
+    #     """
+    # )
 
     create_kafka_topic = BashOperator(
     task_id="create_kafka_topic",
@@ -121,4 +121,4 @@ with DAG(
     #     """
     # )
 
-    reset_tables >> create_kafka_topic >> start_stream_raw_events >> check_stream_alive # >> run_collector >> check_raw_count
+    create_kafka_topic >> start_stream_raw_events >> check_stream_alive # >> run_collector >> check_raw_count
