@@ -31,7 +31,7 @@ CSV 원본 데이터 → Python Producer → Kafka Topic → Consumer/Spark(또�
 
 ## 파이프라인 구성도
 https://excalidraw.com/#json=GSD5xY28rbdpiu6xE1Sjq,T8LC92omkhGyQoQa8jMpQA
-![[total_online_retail_pipeline.png]]
+![파이프라인 구성도](docs/total_online_retail_pipeline.png)
 ## Kafka 수집 설계
 
 ### 설계 포인트
@@ -751,10 +751,6 @@ Airflow를 통해 단순히 스크립트를 순서대로 실행하는 방식이 
 
 ## 1. 현재 파이프라인 구조
 
-본 프로젝트는 Online Retail CSV 데이터를 기반으로 Kafka, Spark Streaming, PostgreSQL, Airflow를 이용한 데이터 파이프라인을 구성하였다.
-
-전체 흐름은 다음과 같다.
-
 CSV 원본 데이터
 → Python Collector / Producer
 → Kafka topic: retail-events
@@ -763,7 +759,7 @@ CSV 원본 데이터
 → Airflow Batch DAG
 → dim / mart 테이블 생성
 
-주요 구성 요소는 다음과 같다.
+#### 주요 구성 요소
 
 | 구성 요소 | 역할 |
 |---|---|
@@ -1006,6 +1002,7 @@ Producer가 Kafka에 메시지를 발행하지 못하는 상황이다.
 
 실시간 파이프라인에서는 Producer, Kafka, Spark Streaming, PostgreSQL 중 하나라도 장애가 발생하면 특정 시간 구간의 데이터가 누락될 수 있다.이때 전체 데이터를 처음부터 다시 처리하는 것은 비효율적이므로, 장애가 발생한 target interval만 다시 처리할 수 있는 backfill DAG가 필요하다. 
 본 프로젝트에서는 `target_start`, `target_end`를 Airflow DAG conf로 전달하여 특정 구간만 재처리할 수 있도록 구성하였다.
+
 ### 4.2 DAG 구조
 ```text
 backfill_retail_jsonl
@@ -1043,6 +1040,8 @@ archive_processed_jsonl
 ## 5. Fallback / Alert 전략  
   
 ### 5.1 Slack Alert  
+
+*추후 구상 예정*
   
 Airflow task 실패 시 Slack으로 알림을 전송한다.  
   
@@ -1053,8 +1052,8 @@ Airflow task 실패 시 Slack으로 알림을 전송한다.
 3. raw count 검증 실패  
 4. Spark Streaming 프로세스 미실행  
 5. PostgreSQL 연결 실패  
-  
-*추후 구상 예정*
+
+
 ### 5.2 Producer Fallback
 
 Kafka 연결 실패 또는 메시지 전송 timeout이 발생하면, 전송 실패 메시지를 fallback JSONL 파일에 저장한다.
@@ -1064,23 +1063,21 @@ Kafka 연결 실패 또는 메시지 전송 timeout이 발생하면, 전송 실�
 예시 형태:
 
 ```
-{"event_id":"INV001-85123","invoice_no":"536365","stock_code":"85123A","error":"KafkaTimeoutError","failed_at":"2026-05-03T21:30:00"}{"event_id":"INV002-71053","invoice_no":"536366","stock_code":"71053","error":"KafkaTimeoutError","failed_at":"2026-05-03T21:30:01"}
+{
+	"event_id":"INV001-85123",
+	"invoice_no":"536365",
+	"stock_code":"85123A",
+	"message":{ ... }
+	"error":"KafkaTimeoutError",
+	"failed_at":"2026-05-03T21:30:00"
+}
 ```
 
 ### 5-2. Backfill DAG conf JSON
 
-이건 fallback JSON 파일이 아니라 Airflow 실행 파라미터야.
+backfill_retail_jsonl DAG로 실행 
 
-```
-docker compose exec airflow airflow dags trigger backfill_retail_ingestion \
-  --conf '{"target_start":"2025-12-01 00:00:00","target_end":"2025-12-02 00:00:00"}'
-```
 
-문서에서는 이렇게 구분해주면 좋아.
-
-```
-Producer fallback JSONL은 실패 메시지를 보관하기 위한 파일이고, Airflow DAG conf JSON은 backfill 실행
-```
 ## 6. 테스트 결과
 
 ## 7. 한계점 및 개선 방향
@@ -1428,7 +1425,7 @@ docker compose up -d api
 http://localhost:8000/health
 ```
 
-![[API_serving.png]]
+![API Serving](docs/API_serving.png)
 
 ## 8. 대시보드와의 연동
 ### 대시보드 환경
@@ -1442,12 +1439,16 @@ http://localhost:8000/health
 http://localhost:8082/main
 ```
 
-![[Dashboard_img.png]]
+![Dashboard Image](docs/Dashboard_img.png)
 
 ---
 # 향후 과제 
 - slack 알람 추가
 - 현재 hourly로 스케쥴링 하는 방식 보다 더 자연스러운 방식 확인해보기
 
-
+---
+# 느낀점
+- 전체적인 흐름을 배우는 것이 목표였는데, 생각 보다 세부적으로 생각하고 고민할 부분이 많았던 것 같다. 세부적인 것을 고민하다가 보다 자연스러운 흐름을 놓친 부분들이 아쉬움이 있다.
+- 전체적인 데이터 엔지니어링의 흐름에 대해 알 수 있었고, 좀 더 학습의 시간을 가진 후 프로젝트를 고도화 해보고 싶다.
+- 후에 인프라나 구조를 활용하는데 더 능숙해진다면, 이번에 배운 데이터 엔지니어링을 더 잘 활용할 수 있을 것 같다.
 
