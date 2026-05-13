@@ -40,8 +40,28 @@ with DAG(
     check_stream_alive = BashOperator(
         task_id="check_stream_alive",
         bash_command="""
+        docker exec spark-master bash -lc '
+        if ps -ef | grep stream_raw_events.py | grep -v grep; then
+            echo "[STREAM] already running"
+            exit 0
+        fi
+
+        echo "[STREAM] not running. starting stream_raw_events.py"
+
+        nohup /opt/bitnami/spark/bin/spark-submit \
+        --master spark://spark-master:7077 \
+        --executor-memory 1g \
+        --executor-cores 1 \
+        --total-executor-cores 1 \
+        --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1 \
+        --jars /opt/spark-jars/postgresql-42.7.3.jar \
+        /opt/spark-apps/stream_raw_events.py \
+        > /tmp/stream_raw_events.log 2>&1 &
+
         sleep 10
-        docker exec spark-master ps -ef | grep stream_raw_events | grep -v grep
+
+        ps -ef | grep stream_raw_events.py | grep -v grep
+        '
         """
     )
 
