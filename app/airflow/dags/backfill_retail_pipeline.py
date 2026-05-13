@@ -18,11 +18,17 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from datetime import datetime, timedelta
 from textwrap import dedent
+import sys
+
+sys.path.insert(0, "/opt/retail-pipeline")
+
+from slack_notifier import notify_dag_failure
 
 default_args = {
     "owner": "sorae",
     "retries": 1,
     "retry_delay": timedelta(seconds=10),
+    "on_failure_callback": notify_dag_failure,
 }
 
 with DAG(

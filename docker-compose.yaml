@@ -134,6 +134,13 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retail_pipeline
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    env_file:
+      - ./config/.env
     ports:
       - "8081:8080"
     volumes:
@@ -174,6 +181,13 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "retail-pipeline-airflow-secret-key"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retail_pipeline
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    env_file:
+      - ./config/.env
     volumes:
       - ./:/opt/retail-pipeline
       - ./app/airflow/dags:/opt/airflow/dags
@@ -198,6 +212,20 @@ services:
       DB_PASSWORD: postgres
     depends_on:
       - postgres
+    networks:
+      - kafka-network
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: retail-dashboard
+    ports:
+      - "8082:8082"
+    environment:
+      RETAIL_API_BASE_URL: http://api:8000
+    depends_on:
+      - api
     networks:
       - kafka-network
 

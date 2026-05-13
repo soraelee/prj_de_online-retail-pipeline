@@ -113,6 +113,70 @@ public class DashboardAPIController {
         return callFastApi("/api/v1/summary/daily-customer-repeats", params);
     }
 
+    @GetMapping("/insights/daily-trend")
+    public ResponseEntity<String> getDailyTrend(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("start_date", startDate);
+        params.put("end_date", endDate);
+
+        return callFastApi("/api/v1/insights/daily-trend", params);
+    }
+
+    @GetMapping("/insights/hourly-order-cancel")
+    public ResponseEntity<String> getHourlyOrderCancel(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("start_date", startDate);
+        params.put("end_date", endDate);
+
+        return callFastApi("/api/v1/insights/hourly-order-cancel", params);
+    }
+
+    @GetMapping("/insights/top-cancel-products")
+    public ResponseEntity<String> getTopCancelProducts(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) Integer limit
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("start_date", startDate);
+        params.put("end_date", endDate);
+        params.put("limit", limit);
+
+        return callFastApi("/api/v1/insights/top-cancel-products", params);
+    }
+
+    @GetMapping("/insights/country-sales")
+    public ResponseEntity<String> getCountrySales(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) Integer limit
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("start_date", startDate);
+        params.put("end_date", endDate);
+        params.put("limit", limit);
+
+        return callFastApi("/api/v1/insights/country-sales", params);
+    }
+
+    @GetMapping("/insights/customer-repeat-summary")
+    public ResponseEntity<String> getCustomerRepeatSummary(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("start_date", startDate);
+        params.put("end_date", endDate);
+
+        return callFastApi("/api/v1/insights/customer-repeat-summary", params);
+    }
+
     /**
      * 공통 FastAPI 호출 메서드
      */

@@ -12,7 +12,6 @@
 
 	<link rel="icon" type="image/x-icon" href="../img/favicon/favicon.ico">
 
-    <link rel="stylesheet" href="../css/plugin/jquery-ui.css"/>
 	<link rel="stylesheet" href="../css/common/reset.css"/>
     <link rel="stylesheet" href="../css/common/root.css"/>
 	<link rel="stylesheet" href="../css/common/font.css"/>
@@ -53,46 +52,63 @@
                 <h2>Retail Pipeline Dashboard</h2>
 
                 <div class="period">
-                    <input type="date" id="startDate" value="2025-12-01">
+                    <input type="date" id="startDate">
                     <span>~</span>
-                    <input type="date" id="endDate" value="2025-12-31">
+                    <input type="date" id="endDate">
                     <button type="button" id="searchBtn">조회</button>
                 </div>
             </div>
 
+            <div class="metricGrid">
+                <div class="metricBox">
+                    <span>총 이벤트</span>
+                    <strong id="totalEventCnt">0건</strong>
+                </div>
+                <div class="metricBox">
+                    <span>주문</span>
+                    <strong id="orderCnt">0건</strong>
+                </div>
+                <div class="metricBox">
+                    <span>취소</span>
+                    <strong id="cancelCnt">0건</strong>
+                </div>
+                <div class="metricBox">
+                    <span>순매출</span>
+                    <strong id="totalSalesAmount">0</strong>
+                </div>
+                <div class="metricBox">
+                    <span>고객 재구매율</span>
+                    <strong id="customerRepeatRate">0%</strong>
+                    <em id="customerRepeatSummary">재구매 고객 0명 / 전체 0명</em>
+                </div>
+            </div>
+
             <div class="dashboardGrid">
-                <div class="graphBox dashboardChartBox dailyOrderCancelBox">
-                    <div class="tit">일별 주문/취소량</div>
+                <div class="graphBox dashboardChartBox dailyTrendBox wideBox">
+                    <div class="tit">일별 주문 / 취소 / 매출 추이</div>
                     <div class="graph">
-                        <div class="dailyOrderCancelGraph"></div>
+                        <div class="dailyTrendGraph"></div>
+                    </div>
+                </div>
+
+                <div class="graphBox dashboardChartBox hourlyPatternBox">
+                    <div class="tit">시간대별 주문 / 취소량</div>
+                    <div class="graph">
+                        <div class="hourlyOrderCancelGraph"></div>
                     </div>
                 </div>
 
                 <div class="graphBox dashboardChartBox eventRatioBox">
-                    <div class="tit">전체 이벤트 기준 주문 / 취소 비율</div>
-                    <div class="graph ratioGraphWrap">
+                    <div class="tit">전체 주문 / 취소 비율</div>
+                    <div class="graph">
                         <div class="eventRatioGraph"></div>
-                        <ul class="ratioSummary">
-                            <li>
-                                <span class="label">전체</span>
-                                <strong id="totalEventCnt">0건</strong>
-                            </li>
-                            <li>
-                                <span class="label">주문</span>
-                                <strong id="orderCnt">0건</strong>
-                            </li>
-                            <li>
-                                <span class="label">취소</span>
-                                <strong id="cancelCnt">0건</strong>
-                            </li>
-                        </ul>
                     </div>
                 </div>
 
-                <div class="graphBox dashboardChartBox customerRepeatBox">
-                    <div class="tit">일별 고객 재처리율</div>
+                <div class="graphBox dashboardChartBox countrySalesBox">
+                    <div class="tit">국가별 매출 Top 10</div>
                     <div class="graph">
-                        <div class="customerRepeatGraph"></div>
+                        <div class="countrySalesGraph"></div>
                     </div>
                 </div>
 
@@ -102,10 +118,16 @@
                         <div class="productTopGraph"></div>
                     </div>
                 </div>
+
+                <div class="graphBox dashboardChartBox cancelProductBox">
+                    <div class="tit">취소 이상 Top 5 상품</div>
+                    <div class="graph">
+                        <div class="cancelProductGraph"></div>
+                    </div>
+                </div>
+
             </div>
         </section>
 	</div>
 </body>
 </html>
-
-

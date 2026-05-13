@@ -1,0 +1,22 @@
+FROM eclipse-temurin:17-jdk AS build
+
+WORKDIR /workspace
+
+COPY dashboard/retail/gradlew ./gradlew
+COPY dashboard/retail/gradle ./gradle
+COPY dashboard/retail/settings.gradle ./settings.gradle
+COPY dashboard/retail/build.gradle ./build.gradle
+COPY dashboard/retail/src ./src
+
+RUN chmod +x ./gradlew
+RUN ./gradlew bootWar -x test --no-daemon
+
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /workspace/build/libs/*.war /app/dashboard.war
+
+EXPOSE 8082
+
+ENTRYPOINT ["java", "-jar", "/app/dashboard.war"]

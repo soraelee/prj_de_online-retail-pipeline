@@ -9,6 +9,11 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 import pendulum
+import sys
+
+sys.path.insert(0, "/opt/retail-pipeline")
+
+from slack_notifier import notify_dag_failure
 
 KST = pendulum.timezone("Asia/Seoul")
 
@@ -18,6 +23,7 @@ default_args = {
     'retries': 3,
     'retry_delay': timedelta(minutes=5),
     'start_date': datetime(2025, 12, 1, tzinfo=KST),
+    'on_failure_callback': notify_dag_failure,
 }
 
 dag = DAG(
@@ -104,9 +110,9 @@ build_dim = BashOperator(
         /opt/bitnami/spark/bin/spark-submit \
             --master {SPARK_MASTER} \
             --deploy-mode client \
-            --executor-cores 1
-            --executor-memory 1g
-            --total-executor-cores 1
+            --executor-cores 1 \
+            --executor-memory 1g \
+            --total-executor-cores 1 \
             --jars /opt/spark-jars/postgresql-42.7.3.jar \
             --driver-class-path /opt/spark-jars/postgresql-42.7.3.jar \
             /opt/spark-apps/build_dim.py \
@@ -125,9 +131,9 @@ build_mart = BashOperator(
         /opt/bitnami/spark/bin/spark-submit \
             --master {SPARK_MASTER} \
             --deploy-mode client \
-            --executor-cores 1
-            --executor-memory 1g
-            --total-executor-cores 1
+            --executor-cores 1 \
+            --executor-memory 1g \
+            --total-executor-cores 1 \
             --jars /opt/spark-jars/postgresql-42.7.3.jar \
             --driver-class-path /opt/spark-jars/postgresql-42.7.3.jar \
             /opt/spark-apps/build_mart.py \

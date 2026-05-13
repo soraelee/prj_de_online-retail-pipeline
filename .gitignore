@@ -1,5 +1,6 @@
 .obsidian/
 app/airflow/logs/
 .DS_Store
-app/airflow/dags/__pycache__/
+*__pycache__/
 fallback/
+config/.env

@@ -188,22 +188,6 @@ def main():
                     f"invoice_no={invoice_no}, "
                     f"message={message}"
                 )
-                future = producer.send(
-                    "retail-events",
-                    key=invoice_no,
-                    value=message
-                )
-
-                metadata = future.get(timeout=10)
-
-                print(
-                    f"[Kafka Sent] topic={metadata.topic}, "
-                    f"partition={metadata.partition}, "
-                    f"offset={metadata.offset}, "
-                    f"event_type={event_type}, "
-                    f"invoice_no={invoice_no}, "
-                    f"message={message}"
-                )
 
                 time.sleep(producer_sleep)
 
@@ -214,8 +198,6 @@ def main():
                 print(f"[FAILED] event_id={msg.get('event_id')}, error={e}")
                 save_failed_message(msg, e)
                 continue
-
-    
     except KeyboardInterrupt:
         print("프로듀서 종료")
     finally:

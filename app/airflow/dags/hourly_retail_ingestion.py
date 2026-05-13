@@ -10,6 +10,11 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from datetime import datetime, timedelta
 import pendulum
+import sys
+
+sys.path.insert(0, "/opt/retail-pipeline")
+
+from slack_notifier import notify_dag_failure
 
 KST = pendulum.timezone("Asia/Seoul")
 
@@ -19,6 +24,7 @@ default_args = {
     'retries': 3,
     'retry_delay': timedelta(seconds=30),
     'start_date': datetime(2025, 12, 1, tzinfo=KST),
+    'on_failure_callback': notify_dag_failure,
 }
 
 with DAG(
@@ -71,8 +77,8 @@ with DAG(
                 sleep 10
             done
 
-            echo "[check_raw_count] raw count is still 0"
-            exit 1
+            echo "[check_raw_count] raw count is 0. No data for this interval, treated as success."
+            exit 0
         """
     )
 

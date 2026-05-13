@@ -91,7 +91,7 @@ def build_dim_product(raw_df):
 def write_dim(df, table_name):
     (
         df.write
-        .mode("append")
+        .mode("overwrite")
         .jdbc(
             url=JDBC_URL,
             table=table_name,

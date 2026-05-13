@@ -1,11 +1,17 @@
 .dashboardTitle {
- margin-bottom: 20px;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 16px;
+ margin-bottom: 18px;
+ padding-right: 4px;
 }
 
 .dashboardTitle h2 {
  font-size: 24px;
  font-weight: 800;
  line-height: 32px;
+ color: var(--color_09);
 }
 
 .dashboardTitle .period {
@@ -15,16 +21,17 @@
 }
 
 .dashboardTitle .period input[type="date"] {
- height: 32px;
- min-width: 140px;
- padding: 0 34px 0 12px;
+ height: 34px;
+ min-width: 146px;
+ padding: 0 12px;
  border: var(--basic_line);
  background-color: var(--color_00);
+ border-radius: 4px;
 }
 
 .dashboardTitle .period button {
- height: 32px;
- min-width: 72px;
+ height: 34px;
+ min-width: 74px;
  padding: 0 14px;
  background-color: var(--color_12);
  color: var(--color_00);
@@ -32,105 +39,223 @@
  border-radius: 4px;
 }
 
+.metricGrid {
+ display: grid;
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+ gap: 16px;
+ margin-bottom: 16px;
+}
+
+.metricBox {
+ min-width: 0;
+ min-height: 96px;
+ padding: 16px 18px;
+ border: 1px solid #E8ECF2;
+ background-color: var(--color_00);
+ border-radius: 8px;
+ overflow: hidden;
+}
+
+.metricBox span {
+ display: block;
+ margin-bottom: 10px;
+ font-size: 13px;
+ font-weight: 700;
+ color: #6B7280;
+}
+
+.metricBox strong {
+ display: block;
+ overflow-wrap: anywhere;
+ font-size: 22px;
+ font-weight: 800;
+ line-height: 28px;
+ color: #1D2433;
+}
+
+.metricBox em {
+ display: block;
+ margin-top: 8px;
+ font-size: 12px;
+ font-weight: 600;
+ line-height: 18px;
+ color: #7A8495;
+ word-break: keep-all;
+ overflow-wrap: anywhere;
+}
+
 .dashboardGrid {
  display: grid;
- grid-template-columns: 1fr 1fr;
- grid-template-rows: 1fr 1fr;
- gap: 24px;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ grid-template-areas:
+  "daily daily"
+  "hourly hourly"
+  "eventRatio country"
+  "product cancel";
+ gap: 16px;
  width: 100%;
- min-height: calc(100vh - 140px);
- padding: 24px 32px 32px;
- border: 1px solid var(--color_06);
- background-color: var(--color_01);
+ min-height: calc(100vh - 250px);
+ padding: 0 0 32px;
 }
 
 .dashboardChartBox {
+ min-width: 0;
  display: flex;
  flex-direction: column;
- min-height: 320px;
- padding: 24px 28px;
- background-color: var(--color_01);
- border: none;
+ min-height: 340px;
+ padding: 20px 22px;
+ border: 1px solid #E8ECF2;
+ background-color: var(--color_00);
+ border-radius: 8px;
  box-shadow: none;
+ overflow: hidden;
+}
+
+.dailyTrendBox {
+ grid-area: daily;
+ min-height: 390px;
+}
+
+.hourlyPatternBox {
+ grid-area: hourly;
+}
+
+.eventRatioBox {
+ grid-area: eventRatio;
+}
+
+.countrySalesBox {
+ grid-area: country;
+}
+
+.productTopBox {
+ grid-area: product;
+}
+
+.cancelProductBox {
+ grid-area: cancel;
 }
 
 .dashboardChartBox > .tit {
- margin-bottom: 18px;
- font-size: 22px;
- font-weight: 700;
- line-height: 28px;
- color: var(--color_09);
+ margin-bottom: 14px;
+ font-size: 17px;
+ font-weight: 800;
+ line-height: 24px;
+ color: #1D2433;
 }
 
 .dashboardChartBox .graph {
+ min-width: 0;
  flex: 1;
  position: relative;
- min-height: 230px;
+ min-height: 260px;
+ overflow: hidden;
 }
 
-.dailyOrderCancelGraph,
+.dailyTrendGraph,
+.hourlyOrderCancelGraph,
 .eventRatioGraph,
-.customerRepeatGraph,
-.productTopGraph {
+.productTopGraph,
+.cancelProductGraph,
+.countrySalesGraph {
  width: 100%;
  height: 100%;
- min-height: 230px;
+ min-height: 260px;
 }
 
-.ratioGraphWrap {
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 28px;
+.wideBox .dailyTrendGraph {
+ min-height: 310px;
 }
 
 .eventRatioGraph {
- width: 260px;
- max-width: 260px;
+ max-width: 520px;
+ margin: 0 auto;
 }
 
-.ratioSummary {
- display: flex;
- flex-direction: column;
- gap: 10px;
- min-width: 120px;
-}
-
-.ratioSummary li {
- display: flex;
- align-items: center;
- justify-content: space-between;
- gap: 14px;
-}
-
-.ratioSummary .label {
- font-size: 14px;
- color: var(--color_08);
-}
-
-.ratioSummary strong {
- font-size: 16px;
- font-weight: 800;
- color: var(--color_12);
+.countrySalesGraph {
+ max-width: 680px;
+ margin: 0 auto;
 }
 
 .chartEmpty {
  display: flex;
  align-items: center;
  justify-content: center;
- height: 230px;
- color: var(--color_08);
- border: 1px dashed var(--color_06);
- background-color: var(--color_00);
+ height: 260px;
+ color: #6B7280;
+ border: 1px dashed #D9DEE8;
+ background-color: #F8FAFC;
+ border-radius: 6px;
 }
 
-@media (max-width: 1400px) {
+.dashboardTooltip {
+ min-width: 210px;
+ max-width: 320px;
+ padding: 10px 12px;
+ background-color: #FFFFFF;
+ border: 1px solid #E8ECF2;
+ box-shadow: 0 8px 20px rgba(29, 36, 51, 0.12);
+}
+
+.dashboardTooltip div {
+ display: flex;
+ justify-content: space-between;
+ gap: 14px;
+ padding: 3px 0;
+ font-size: 12px;
+ color: #6B7280;
+}
+
+.dashboardTooltip span {
+ flex: 0 0 auto;
+}
+
+.dashboardTooltip strong {
+ max-width: 190px;
+ font-weight: 800;
+ color: #1D2433;
+ text-align: right;
+ word-break: keep-all;
+ overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
  .dashboardGrid {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+   "daily"
+   "hourly"
+   "eventRatio"
+   "country"
+   "product"
+   "cancel";
+ }
+
+ .dashboardTitle {
+  align-items: flex-start;
+  flex-direction: column;
+ }
+
+ .dashboardTitle .period {
+  flex-wrap: wrap;
+ }
+
+ .metricGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+ }
+}
+
+@media (max-width: 560px) {
+ .metricGrid {
   grid-template-columns: 1fr;
-  grid-template-rows: auto;
+ }
+
+ .dashboardTitle .period input[type="date"] {
+  min-width: 0;
+  width: calc(50% - 16px);
  }
 
  .dashboardChartBox {
-  min-height: 300px;
+  padding: 18px 14px;
  }
 }

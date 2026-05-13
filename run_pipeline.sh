@@ -22,22 +22,22 @@ docker compose exec airflow airflow dags trigger setup_retail_pipeline
 echo "6. Unpause hourly DAG"
 docker compose exec airflow airflow dags unpause hourly_retail_ingestion
 
-echo "7. Trigger hourly DAG"
-docker compose exec airflow airflow dags trigger hourly_retail_ingestion
+# echo "7. Trigger hourly DAG"
+# docker compose exec airflow airflow dags trigger hourly_retail_ingestion
 
-echo "8. Unpause build DAG"
+echo "7. Unpause build DAG"
 docker compose exec airflow airflow dags unpause retail_pipeline
 
-echo "9. Trigger build DAG"
-docker compose exec airflow airflow dags trigger retail_pipeline
+# echo "9. Trigger build DAG"
+# docker compose exec airflow airflow dags trigger retail_pipeline
 
-echo "10. Unpause backfill DAG"
+echo "8. Unpause backfill DAG"
 docker compose exec airflow airflow dags unpause backfill_retail_jsonl
 
 # echo "11. Trigger backfill DAG"
 # docker compose exec airflow airflow dags trigger backfill_retail_jsonl
 
-echo "11. Airflow UI: http://localhost:8081"
+echo "9. Airflow UI: http://localhost:8081"
 
-echo "12. Set API environment variable"
+echo "10. Set API environment variables"
 docker compose up --build -d api

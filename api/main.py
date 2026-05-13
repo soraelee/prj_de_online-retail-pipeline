@@ -180,6 +180,222 @@ def get_order_info_summary(
         "data": rows
     }
 
+
+@app.get("/api/v1/insights/daily-trend")
+def get_daily_trend(
+    start_date: Optional[str] = Query(None, example="2025-12-01"),
+    end_date: Optional[str] = Query(None, example="2025-12-31"),
+):
+    """
+    일별 주문/취소/매출 추이 API
+    """
+    sql = """
+        SELECT
+            order_date,
+            total_event_cnt,
+            order_cnt,
+            cancel_cnt,
+            total_sales_amount,
+            order_sales_amount,
+            cancel_sales_amount,
+            order_rate,
+            cancel_rate
+        FROM mart_daily_orders
+        WHERE (%(start_date)s IS NULL OR order_date >= %(start_date)s::date)
+          AND (%(end_date)s IS NULL OR order_date <= %(end_date)s::date)
+        ORDER BY order_date ASC
+    """
+
+    rows = fetch_all(sql, {
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+    return {
+        "data": rows
+    }
+
+
+@app.get("/api/v1/insights/hourly-order-cancel")
+def get_hourly_order_cancel(
+    start_date: Optional[str] = Query(None, example="2025-12-01"),
+    end_date: Optional[str] = Query(None, example="2025-12-31"),
+):
+    """
+    시간대별 주문/취소량 API
+    """
+    sql = """
+        SELECT
+            EXTRACT(HOUR FROM invoice_time::time)::integer AS invoice_hour,
+            COUNT(*) AS total_event_cnt,
+            COUNT(*) FILTER (WHERE event_type = 'order') AS order_cnt,
+            COUNT(*) FILTER (WHERE event_type = 'cancel') AS cancel_cnt,
+            ROUND(SUM(CASE WHEN event_type = 'order' THEN ABS(quantity * unit_price) ELSE 0 END), 2) AS order_sales_amount,
+            ROUND(SUM(CASE WHEN event_type = 'cancel' THEN ABS(quantity * unit_price) ELSE 0 END), 2) AS cancel_sales_amount,
+            ROUND(
+                COUNT(*) FILTER (WHERE event_type = 'cancel')::numeric
+                / NULLIF(COUNT(*), 0) * 100,
+                2
+            ) AS cancel_rate
+        FROM raw_retail_events
+        WHERE invoice_time IS NOT NULL
+          AND event_type IN ('order', 'cancel')
+          AND (%(start_date)s IS NULL OR invoice_date >= %(start_date)s::date)
+          AND (%(end_date)s IS NULL OR invoice_date <= %(end_date)s::date)
+        GROUP BY invoice_hour
+        ORDER BY invoice_hour ASC
+    """
+
+    rows = fetch_all(sql, {
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+    return {
+        "data": rows
+    }
+
+
+@app.get("/api/v1/insights/top-cancel-products")
+def get_top_cancel_products(
+    start_date: Optional[str] = Query(None, example="2025-12-01"),
+    end_date: Optional[str] = Query(None, example="2025-12-31"),
+    limit: int = Query(5, ge=1, le=20),
+):
+    """
+    취소 이상 Top 상품 API
+    """
+    sql = """
+        SELECT
+            m.stock_code,
+            COALESCE(p.product_name, p.description, m.stock_code) AS product_name,
+            m.category,
+            SUM(m.order_cnt) AS order_cnt,
+            SUM(ABS(m.cancel_cnt)) AS cancel_cnt,
+            ROUND(SUM(m.order_sales_amount)::numeric, 2) AS order_sales_amount,
+            ROUND(SUM(m.cancel_sales_amount)::numeric, 2) AS cancel_sales_amount,
+            ROUND(
+                SUM(ABS(m.cancel_cnt))::numeric
+                / NULLIF(SUM(ABS(m.order_cnt)) + SUM(ABS(m.cancel_cnt)), 0) * 100,
+                2
+            ) AS cancel_rate
+        FROM mart_product_sales m
+        LEFT JOIN dim_product p ON m.stock_code = p.stock_code
+        WHERE (%(start_date)s IS NULL OR m.order_date >= %(start_date)s::date)
+          AND (%(end_date)s IS NULL OR m.order_date <= %(end_date)s::date)
+          AND UPPER(COALESCE(m.stock_code, '')) NOT IN ('AMAZONFE', 'AMAZONFEE')
+          AND UPPER(COALESCE(p.product_name, p.description, '')) NOT LIKE 'AMAZON FEE%%'
+        GROUP BY
+            m.stock_code,
+            COALESCE(p.product_name, p.description, m.stock_code),
+            m.category
+        HAVING SUM(ABS(m.cancel_cnt)) > 0
+        ORDER BY cancel_sales_amount DESC, cancel_cnt DESC
+        LIMIT %(limit)s
+    """
+
+    rows = fetch_all(sql, {
+        "start_date": start_date,
+        "end_date": end_date,
+        "limit": limit,
+    })
+
+    return {
+        "data": rows
+    }
+
+
+@app.get("/api/v1/insights/country-sales")
+def get_country_sales(
+    start_date: Optional[str] = Query(None, example="2025-12-01"),
+    end_date: Optional[str] = Query(None, example="2025-12-31"),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """
+    국가별 매출 API
+    """
+    sql = """
+        SELECT
+            COALESCE(country, 'Unknown') AS country,
+            COUNT(DISTINCT invoice_no) AS invoice_cnt,
+            COUNT(*) AS event_cnt,
+            ROUND(SUM(CASE WHEN event_type = 'order' THEN ABS(quantity * unit_price) ELSE 0 END), 2) AS order_sales_amount,
+            ROUND(SUM(CASE WHEN event_type = 'cancel' THEN ABS(quantity * unit_price) ELSE 0 END), 2) AS cancel_sales_amount,
+            ROUND(SUM(CASE
+                WHEN event_type = 'order' THEN ABS(quantity * unit_price)
+                WHEN event_type = 'cancel' THEN -ABS(quantity * unit_price)
+                ELSE 0
+            END), 2) AS total_sales_amount
+        FROM raw_retail_events
+        WHERE event_type IN ('order', 'cancel')
+          AND (%(start_date)s IS NULL OR invoice_date >= %(start_date)s::date)
+          AND (%(end_date)s IS NULL OR invoice_date <= %(end_date)s::date)
+        GROUP BY COALESCE(country, 'Unknown')
+        ORDER BY total_sales_amount DESC
+        LIMIT %(limit)s
+    """
+
+    rows = fetch_all(sql, {
+        "start_date": start_date,
+        "end_date": end_date,
+        "limit": limit,
+    })
+
+    return {
+        "data": rows
+    }
+
+
+@app.get("/api/v1/insights/customer-repeat-summary")
+def get_customer_repeat_summary(
+    start_date: Optional[str] = Query(None, example="2025-12-01"),
+    end_date: Optional[str] = Query(None, example="2025-12-31"),
+):
+    """
+    조회 기간 내 고객 재구매율 요약 API
+     - 기간 내 주문 고객 중 2회 이상 주문한 고객 비율을 조회하는 API
+    """
+    sql = """
+        WITH customer_orders AS (
+            SELECT
+                customer_id,
+                COUNT(DISTINCT invoice_no) AS order_count
+            FROM order_info
+            WHERE event_type = 'order'
+              AND customer_id IS NOT NULL
+              AND (%(start_date)s IS NULL OR invoice_date >= %(start_date)s::date)
+              AND (%(end_date)s IS NULL OR invoice_date <= %(end_date)s::date)
+            GROUP BY customer_id
+        )
+        SELECT
+            COUNT(*) AS total_customer_cnt,
+            COUNT(*) FILTER (WHERE order_count >= 2) AS repeat_customer_cnt,
+            COALESCE(
+                ROUND(
+                    COUNT(*) FILTER (WHERE order_count >= 2)::numeric
+                    / NULLIF(COUNT(*), 0)
+                    * 100,
+                    2
+                ),
+                0
+            ) AS repeat_customer_rate
+        FROM customer_orders
+    """
+
+    row = fetch_one(sql, {
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+    return {
+        "data": row or {
+            "total_customer_cnt": 0,
+            "repeat_customer_cnt": 0,
+            "repeat_customer_rate": 0,
+        }
+    }
+
+
 @app.get("/api/v1/summary/daily-product-sales")
 def get_product_sales(
     start_date: Optional[str] = Query(None, example="2025-12-01"),
@@ -253,4 +469,3 @@ def get_customer_repeats(
     return {
         "data": rows,
     }
-

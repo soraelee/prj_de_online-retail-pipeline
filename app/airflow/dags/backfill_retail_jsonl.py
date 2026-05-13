@@ -11,6 +11,11 @@ from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime, timedelta
 from textwrap import dedent
 import pendulum
+import sys
+
+sys.path.insert(0, "/opt/retail-pipeline")
+
+from slack_notifier import notify_dag_failure
 
 KST = pendulum.timezone("Asia/Seoul")
 
@@ -18,6 +23,7 @@ default_args = {
     "owner": "sorae",
     "retries": 1,
     "retry_delay": timedelta(seconds=10),
+    "on_failure_callback": notify_dag_failure,
 }
 
 with DAG(
@@ -71,7 +77,8 @@ with DAG(
                 echo "/app/fallback/processing/failed_messages_${TS}.jsonl" > /app/fallback/processing/latest_processing_file.txt
                 cat /app/fallback/processing/latest_processing_file.txt
             '
-        """)
+        """),
+        skip_on_exit_code=99,
     )
 
     replay_jsonl_to_kafka = BashOperator(
@@ -233,4 +240,7 @@ with DAG(
     )
 
     create_kafka_topic >> check_spark_streaming >> prepare_jsonl_file >> replay_jsonl_to_kafka \
-    >> check_raw_count >> run_batch_build_dim >> run_batch_build_mart >> check_agg_count >> archive_processed_jsonl
+    >> check_raw_count >> run_batch_build_dim >> run_batch_build_mart >> check_agg_count
+
+    check_agg_count >> archive_processed_jsonl
+    check_agg_count >> archive_error_jsonl
