@@ -41,3 +41,6 @@ echo "9. Airflow UI: http://localhost:8081"
 
 echo "10. Set API environment variables"
 docker compose up --build -d api
+
+echo "11. Set Dashboard environment variables"
+docker compose up --build -d dashboard
